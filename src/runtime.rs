@@ -21,6 +21,7 @@ pub enum Value {
     Interface(Rc<InterfaceDef>),
     Module(String),
     ModuleEnv(Rc<Environment>),
+    Tuple(Vec<Value>),
 }
 
 impl Value {
@@ -47,6 +48,7 @@ impl PartialEq for Value {
             (Value::NativeFunction(_), Value::NativeFunction(_)) => false,
             (Value::Interface(a), Value::Interface(b)) => Rc::ptr_eq(a, b),
             (Value::Module(a), Value::Module(b)) => a == b,
+            (Value::Tuple(a), Value::Tuple(b)) => a == b,
             _ => false,
         }
     }
@@ -71,6 +73,10 @@ impl fmt::Display for Value {
             Value::Interface(iface) => write!(f, "interface {}", iface.name),
             Value::Module(name) => write!(f, "module({})", name),
             Value::ModuleEnv(_) => write!(f, "module"),
+            Value::Tuple(items) => {
+                let items_str: Vec<String> = items.iter().map(|v| format!("{}", v)).collect();
+                write!(f, "({})", items_str.join(", "))
+            }
         }
     }
 }

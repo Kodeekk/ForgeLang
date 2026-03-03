@@ -753,12 +753,12 @@ impl Interpreter {
                 self.define_variable(name.clone(), val);
                 Ok(Value::Void)
             }
-            Stmt::VarDecl { name, initializer, .. } => {
+            Stmt::VarDecl { pattern, initializer, .. } => {
                 let val = match initializer {
                     Some(expr) => self.evaluate(expr)?,
                     None => Value::Void,
                 };
-                self.define_variable(name.clone(), val);
+                self.bind_pattern(pattern, val)?;
                 Ok(Value::Void)
             }
             Stmt::FnDecl { name, params, return_type, body, .. } => {
@@ -882,38 +882,42 @@ impl Interpreter {
             }
             Stmt::Match { expr, arms, .. } => {
                 let match_value = self.evaluate(expr)?;
-                
+
                 for arm in arms {
-                    let matches = match &arm.pattern {
-                        MatchPattern::Literal(lit) => {
-                            let lit_value = self.literal_to_value(lit)?;
-                            match_value == lit_value
-                        }
-                        MatchPattern::Ident(name) => {
-                            self.define_variable(name.clone(), match_value.clone());
-                            true
-                        }
-                        MatchPattern::Underscore => true,
-                    };
-                    
+                    let (matches, bindings) = self.match_pattern(&arm.pattern, &match_value);
+
                     if matches {
+                        // Bind any variables from the pattern
+                        for (name, value) in bindings {
+                            self.define_variable(name, value);
+                        }
                         for s in &arm.body {
                             let _ = self.execute(s);
                         }
                         break;
                     }
                 }
-                
+
                 Ok(Value::Void)
             }
-            Stmt::For { var_name, iterable, body, .. } => {
+            Stmt::For { pattern, iterable, body, .. } => {
                 let iter_value = self.evaluate(iterable)?;
-                
+
                 match iter_value {
                     Value::List(list) => {
                         let list_clone = list.borrow().clone();
                         for item in list_clone.iter() {
-                            self.define_variable(var_name.clone(), item.clone());
+                            self.bind_pattern(pattern, item.clone())?;
+
+                            for s in body {
+                                let _ = self.execute(s);
+                            }
+                        }
+                    }
+                    Value::Tuple(tuple_items) => {
+                        // Iterate over tuple elements
+                        for item in tuple_items.iter() {
+                            self.bind_pattern(pattern, item.clone())?;
 
                             for s in body {
                                 let _ = self.execute(s);
@@ -922,7 +926,7 @@ impl Interpreter {
                     }
                     _ => return Err(format!("Cannot iterate over non-list value")),
                 }
-                
+
                 Ok(Value::Void)
             }
             Stmt::While { condition, body, .. } => {
@@ -963,6 +967,108 @@ impl Interpreter {
     fn define_variable(&mut self, name: String, value: Value) {
         let mut env_values = self.env.values.borrow_mut();
         env_values.insert(name, value);
+    }
+
+    /// Bind a pattern to a value, handling destructuring
+    fn bind_pattern(&mut self, pattern: &Pattern, value: Value) -> Result<(), String> {
+        match pattern {
+            Pattern::Ident(name) => {
+                self.define_variable(name.clone(), value);
+            }
+            Pattern::Underscore => {
+                // Ignore the value
+            }
+            Pattern::Tuple(patterns) => {
+                match value {
+                    Value::Tuple(values) => {
+                        if patterns.len() != values.len() {
+                            return Err(format!(
+                                "Tuple pattern mismatch: expected {} elements, got {}",
+                                patterns.len(),
+                                values.len()
+                            ));
+                        }
+                        for (i, pattern) in patterns.iter().enumerate() {
+                            self.bind_pattern(pattern, values[i].clone())?;
+                        }
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Cannot destructure non-tuple value with tuple pattern"
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Match a pattern against a value, returning (matches, bindings)
+    fn match_pattern(&self, pattern: &MatchPattern, value: &Value) -> (bool, Vec<(String, Value)>) {
+        match pattern {
+            MatchPattern::Literal(lit) => {
+                // Convert literal to value and compare
+                match lit {
+                    Literal::Int(i) => {
+                        if let Value::Int(v) = value {
+                            (v == i, vec![])
+                        } else {
+                            (false, vec![])
+                        }
+                    }
+                    Literal::Float(f) => {
+                        if let Value::Float(v) = value {
+                            (v == f, vec![])
+                        } else {
+                            (false, vec![])
+                        }
+                    }
+                    Literal::Str(s) => {
+                        if let Value::Str(v) = value {
+                            (v == s, vec![])
+                        } else {
+                            (false, vec![])
+                        }
+                    }
+                    Literal::Bool(b) => {
+                        if let Value::Bool(v) = value {
+                            (v == b, vec![])
+                        } else {
+                            (false, vec![])
+                        }
+                    }
+                    Literal::Void => {
+                        (matches!(value, Value::Void), vec![])
+                    }
+                }
+            }
+            MatchPattern::Ident(name) => {
+                // Bind the value to the identifier
+                (true, vec![(name.clone(), value.clone())])
+            }
+            MatchPattern::Underscore => {
+                // Always matches, no bindings
+                (true, vec![])
+            }
+            MatchPattern::Tuple(patterns) => {
+                if let Value::Tuple(values) = value {
+                    if patterns.len() != values.len() {
+                        return (false, vec![]);
+                    }
+                    let mut all_bindings = vec![];
+                    for (i, pattern) in patterns.iter().enumerate() {
+                        let (matches, bindings) = self.match_pattern(pattern, &values[i]);
+                        if !matches {
+                            return (false, vec![]);
+                        }
+                        all_bindings.extend(bindings);
+                    }
+                    (true, all_bindings)
+                } else {
+                    (false, vec![])
+                }
+            }
+        }
     }
 
     fn assign_variable(&mut self, name: &str, value: Value) -> Result<(), String> {
@@ -1282,6 +1388,12 @@ impl Interpreter {
                     .map(|e| self.evaluate(e))
                     .collect::<Result<_, _>>()?;
                 Ok(Value::List(Rc::new(RefCell::new(values))))
+            }
+            Expr::TupleLiteral(elements) => {
+                let values: Vec<Value> = elements.iter()
+                    .map(|e| self.evaluate(e))
+                    .collect::<Result<_, _>>()?;
+                Ok(Value::Tuple(values))
             }
             Expr::ClassLiteral { class_name, fields } => {
                 if let Some(class_def) = self.classes.get(class_name).cloned() {
