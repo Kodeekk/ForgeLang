@@ -46,6 +46,8 @@ struct ScopeAnalyzer {
     interfaces: HashSet<String>,
     /// Track used variables for potential unused warnings
     _used_vars: HashSet<String>,
+    /// Current expected return type (for return statement validation)
+    expected_return_type: Option<TypeInfo>,
 }
 
 impl ScopeAnalyzer {
@@ -57,6 +59,7 @@ impl ScopeAnalyzer {
             classes: HashSet::new(),
             interfaces: HashSet::new(),
             _used_vars: HashSet::new(),
+            expected_return_type: None,
         }
     }
 
@@ -216,16 +219,21 @@ impl ScopeAnalyzer {
                 }
                 self.define_var(name, val_type);
             }
-            Stmt::FnDecl { params, body, .. } => {
+            Stmt::FnDecl { name: _, params, return_type, body, location: _ } => {
                 self.push_scope();
                 // Add parameters to scope
                 for param in params {
                     self.define_var(&param.name, TypeInfo::Unknown);
                 }
+                // Set expected return type
+                let old_expected = self.expected_return_type.take();
+                self.expected_return_type = return_type.as_ref().map(|rt| self.type_from_annotation(rt));
                 // Analyze function body
                 for s in body {
                     self.analyze_stmt(s);
                 }
+                // Restore previous expected return type
+                self.expected_return_type = old_expected;
                 self.pop_scope();
             }
             Stmt::ClassDecl { name: _, fields: _, methods, implements, .. } => {
@@ -255,10 +263,15 @@ impl ScopeAnalyzer {
                             self.define_var(&param.name, TypeInfo::Unknown);
                         }
                     }
+                    // Set expected return type for method
+                    let old_expected = self.expected_return_type.take();
+                    self.expected_return_type = method.return_type.as_ref().map(|rt| self.type_from_annotation(rt));
                     // Analyze method body
                     for s in &method.body {
                         self.analyze_stmt(s);
                     }
+                    // Restore previous expected return type
+                    self.expected_return_type = old_expected;
                     self.pop_scope();
                 }
             }
@@ -288,9 +301,14 @@ impl ScopeAnalyzer {
                             self.define_var(&param.name, TypeInfo::Unknown);
                         }
                     }
+                    // Set expected return type for method
+                    let old_expected = self.expected_return_type.take();
+                    self.expected_return_type = method.return_type.as_ref().map(|rt| self.type_from_annotation(rt));
                     for s in &method.body {
                         self.analyze_stmt(s);
                     }
+                    // Restore previous expected return type
+                    self.expected_return_type = old_expected;
                     self.pop_scope();
                 }
             }
@@ -299,7 +317,28 @@ impl ScopeAnalyzer {
             }
             Stmt::Return(expr) => {
                 if let Some(e) = expr {
-                    self.analyze_expr(e);
+                    let return_type = self.infer_expr_type(e);
+                    // Check if return type matches expected
+                    if let Some(expected) = &self.expected_return_type {
+                        if !self.types_compatible(&return_type, expected) {
+                            self.errors.error(
+                                CompileError::type_error(codes::TYPE_MISMATCH,
+                                    format!("Cannot return value of type '{}' from function with return type '{}'", 
+                                        return_type, expected))
+                            );
+                        }
+                    }
+                } else {
+                    // Return without value - only valid for void functions
+                    if let Some(expected) = &self.expected_return_type {
+                        if expected != &TypeInfo::Void {
+                            self.errors.error(
+                                CompileError::type_error(codes::MISSING_RETURN,
+                                    format!("Expected to return value of type '{}', found return without value", 
+                                        expected))
+                            );
+                        }
+                    }
                 }
             }
             Stmt::If { condition, then_branch, else_if_branches, else_branch, .. } => {
@@ -452,9 +491,12 @@ impl ScopeAnalyzer {
                 for param in params {
                     self.define_var(&param.name, TypeInfo::Unknown);
                 }
+                // Lambdas have their own return type context - clear expected return type
+                let old_expected = self.expected_return_type.take();
                 for s in body {
                     self.analyze_stmt(s);
                 }
+                self.expected_return_type = old_expected;
                 self.pop_scope();
             }
             Expr::ListLiteral(elements) => {

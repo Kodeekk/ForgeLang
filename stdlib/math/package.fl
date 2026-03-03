@@ -41,7 +41,7 @@ fn sign(n) -> int {
 }
 
 /// Check if number is even
-fn is_even(n) -> bool {
+fn is_even(n) {
     return n % 2 == 0;
 }
 
@@ -77,7 +77,7 @@ fn lcm(a, b) -> int {
 }
 
 /// Check if number is prime
-fn is_prime(n) -> bool {
+fn is_prime(n) {
     if n < 2 {
         return false;
     }
