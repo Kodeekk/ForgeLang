@@ -3,8 +3,12 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::fs;
+use std::path::Path;
 use crate::ast::*;
 use crate::runtime::*;
+use crate::lexer::Lexer;
+use crate::parser::Parser;
 
 pub struct Interpreter {
     pub env: Rc<Environment>,
@@ -12,16 +16,38 @@ pub struct Interpreter {
     pub interfaces: HashMap<String, Rc<InterfaceDef>>,
     pub interface_impls: HashMap<String, HashMap<String, Rc<Function>>>,
     return_value: Option<Value>,
+    stdlib_path: String,
+    loaded_modules: HashMap<String, Rc<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        // Determine stdlib path - check relative to executable first, then use compile-time path
+        let stdlib_path = if Path::new("stdlib").exists() {
+            "stdlib".to_string()
+        } else if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                let candidate = parent.join("stdlib");
+                if candidate.exists() {
+                    candidate.to_string_lossy().to_string()
+                } else {
+                    "stdlib".to_string()
+                }
+            } else {
+                "stdlib".to_string()
+            }
+        } else {
+            "stdlib".to_string()
+        };
+
         Interpreter {
             env: Rc::new(Environment::new()),
             classes: HashMap::new(),
             interfaces: HashMap::new(),
             interface_impls: HashMap::new(),
             return_value: None,
+            stdlib_path,
+            loaded_modules: HashMap::new(),
         }
     }
     
@@ -39,7 +65,8 @@ impl Interpreter {
     fn setup_builtins(&mut self) {
         let mut values = self.env.values.borrow_mut();
 
-        values.insert("print".to_string(), Value::NativeFunction(|args| {
+        // Core I/O builtins
+        values.insert("builtin_print".to_string(), Value::NativeFunction(|args| {
             if args.is_empty() {
                 return Ok(Value::Void);
             }
@@ -47,7 +74,7 @@ impl Interpreter {
             Ok(Value::Void)
         }));
 
-        values.insert("println".to_string(), Value::NativeFunction(|args| {
+        values.insert("builtin_println".to_string(), Value::NativeFunction(|args| {
             if args.is_empty() {
                 println!();
                 return Ok(Value::Void);
@@ -56,11 +83,335 @@ impl Interpreter {
             Ok(Value::Void)
         }));
 
+        values.insert("builtin_eprint".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Void);
+            }
+            eprint!("{}", args[0]);
+            Ok(Value::Void)
+        }));
+
+        values.insert("builtin_read_line".to_string(), Value::NativeFunction(|args| {
+            use std::io::{self, Write};
+            let _ = io::stdout().flush();
+            let mut input = String::new();
+            match io::stdin().read_line(&mut input) {
+                Ok(_) => Ok(Value::Str(input.trim_end().to_string())),
+                Err(_) => Ok(Value::Str("".to_string())),
+            }
+        }));
+
+        values.insert("builtin_read_all".to_string(), Value::NativeFunction(|args| {
+            use std::io::{self, Read};
+            let mut input = String::new();
+            match io::stdin().read_to_string(&mut input) {
+                Ok(_) => Ok(Value::Str(input)),
+                Err(_) => Ok(Value::Str("".to_string())),
+            }
+        }));
+
+        values.insert("builtin_format".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Str("".to_string()));
+            }
+            Ok(Value::Str(format!("{}", args[0])))
+        }));
+
+        // Module placeholders (will be loaded from stdlib)
         values.insert("math".to_string(), Value::Module("math".to_string()));
         values.insert("list".to_string(), Value::Module("list".to_string()));
         values.insert("fs".to_string(), Value::Module("fs".to_string()));
         values.insert("env".to_string(), Value::Module("env".to_string()));
         values.insert("time".to_string(), Value::Module("time".to_string()));
+
+        // FS builtins
+        values.insert("builtin_fs_read".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("read() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                match fs::read_to_string(path) {
+                    Ok(content) => Ok(Value::Str(content)),
+                    Err(e) => Err(format!("Failed to read file: {}", e)),
+                }
+            } else {
+                Err("read() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_write".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("write() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(path), Value::Str(content)) = (&args[0], &args[1]) {
+                match fs::write(path, content) {
+                    Ok(_) => Ok(Value::Void),
+                    Err(e) => Err(format!("Failed to write file: {}", e)),
+                }
+            } else {
+                Err("write() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_append".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("append() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(path), Value::Str(content)) = (&args[0], &args[1]) {
+                use std::io::Write;
+                match fs::OpenOptions::new().create(true).append(true).open(path) {
+                    Ok(mut file) => {
+                        match file.write_all(content.as_bytes()) {
+                            Ok(_) => Ok(Value::Void),
+                            Err(e) => Err(format!("Failed to append to file: {}", e)),
+                        }
+                    }
+                    Err(e) => Err(format!("Failed to open file: {}", e)),
+                }
+            } else {
+                Err("append() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_exists".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("exists() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                Ok(Value::Bool(Path::new(path).exists()))
+            } else {
+                Err("exists() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_remove".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("remove() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                match fs::remove_file(path) {
+                    Ok(_) => Ok(Value::Void),
+                    Err(e) => Err(format!("Failed to remove file: {}", e)),
+                }
+            } else {
+                Err("remove() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_create_dir".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("create_dir() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                match fs::create_dir_all(path) {
+                    Ok(_) => Ok(Value::Void),
+                    Err(e) => Err(format!("Failed to create directory: {}", e)),
+                }
+            } else {
+                Err("create_dir() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_fs_read_dir".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("read_dir() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                match fs::read_dir(path) {
+                    Ok(entries) => {
+                        let mut result = Vec::new();
+                        for entry in entries.flatten() {
+                            if let Some(name) = entry.file_name().to_str() {
+                                result.push(Value::Str(name.to_string()));
+                            }
+                        }
+                        Ok(Value::List(Rc::new(RefCell::new(result))))
+                    }
+                    Err(e) => Err(format!("Failed to read directory: {}", e)),
+                }
+            } else {
+                Err("read_dir() requires string argument".to_string())
+            }
+        }));
+
+        // Env builtins
+        values.insert("builtin_env_cwd".to_string(), Value::NativeFunction(|_args| {
+            match std::env::current_dir() {
+                Ok(path) => Ok(Value::Str(path.to_string_lossy().to_string())),
+                Err(_) => Err("Failed to get current directory".to_string()),
+            }
+        }));
+
+        values.insert("builtin_env_home".to_string(), Value::NativeFunction(|_args| {
+            match std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+                Ok(path) => Ok(Value::Str(path)),
+                Err(_) => Ok(Value::Str("".to_string())),
+            }
+        }));
+
+        values.insert("builtin_env_hostname".to_string(), Value::NativeFunction(|_args| {
+            match std::env::var("HOSTNAME").or_else(|_| std::env::var("COMPUTERNAME")) {
+                Ok(name) => Ok(Value::Str(name)),
+                Err(_) => Ok(Value::Str("unknown".to_string())),
+            }
+        }));
+
+        values.insert("builtin_env_os".to_string(), Value::NativeFunction(|_args| {
+            Ok(Value::Str(std::env::consts::OS.to_string()))
+        }));
+
+        values.insert("builtin_env_get".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("get() requires 1 argument".to_string());
+            }
+            if let Value::Str(key) = &args[0] {
+                match std::env::var(key) {
+                    Ok(val) => Ok(Value::Str(val)),
+                    Err(_) => Ok(Value::Void),
+                }
+            } else {
+                Err("get() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_env_set".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("set() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(key), Value::Str(val)) = (&args[0], &args[1]) {
+                std::env::set_var(key, val);
+                Ok(Value::Void)
+            } else {
+                Err("set() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_env_has".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("has() requires 1 argument".to_string());
+            }
+            if let Value::Str(key) = &args[0] {
+                Ok(Value::Bool(std::env::var(key).is_ok()))
+            } else {
+                Err("has() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_env_remove".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("remove() requires 1 argument".to_string());
+            }
+            if let Value::Str(key) = &args[0] {
+                std::env::remove_var(key);
+                Ok(Value::Void)
+            } else {
+                Err("remove() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_env_vars".to_string(), Value::NativeFunction(|_args| {
+            let mut result = Vec::new();
+            for (key, val) in std::env::vars() {
+                // Store as a simple string "key=value"
+                result.push(Value::Str(format!("{}={}", key, val)));
+            }
+            Ok(Value::List(Rc::new(RefCell::new(result))))
+        }));
+
+        // Time builtins
+        use std::time::{SystemTime, UNIX_EPOCH};
+        values.insert("builtin_time_now".to_string(), Value::NativeFunction(|_args| {
+            match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(duration) => Ok(Value::Int(duration.as_millis() as i64)),
+                Err(_) => Ok(Value::Int(0)),
+            }
+        }));
+
+        values.insert("builtin_time_sleep".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("sleep() requires 1 argument".to_string());
+            }
+            if let Value::Int(ms) = &args[0] {
+                std::thread::sleep(std::time::Duration::from_millis(*ms as u64));
+                Ok(Value::Void)
+            } else {
+                Err("sleep() requires integer argument".to_string())
+            }
+        }));
+
+        // Math builtins
+        values.insert("builtin_math_abs".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("abs() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Int(i.abs())),
+                Value::Float(f) => Ok(Value::Float(f.abs())),
+                _ => Err("abs() requires numeric argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_math_min".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("min() requires 2 arguments".to_string());
+            }
+            match (&args[0], &args[1]) {
+                (Value::Int(a), Value::Int(b)) => Ok(Value::Int(std::cmp::min(*a, *b))),
+                (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a.min(*b))),
+                _ => Err("min() requires numeric arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_math_max".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("max() requires 2 arguments".to_string());
+            }
+            match (&args[0], &args[1]) {
+                (Value::Int(a), Value::Int(b)) => Ok(Value::Int(std::cmp::max(*a, *b))),
+                (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a.max(*b))),
+                _ => Err("max() requires numeric arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_math_pow".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("pow() requires 2 arguments".to_string());
+            }
+            match (&args[0], &args[1]) {
+                (Value::Int(base), Value::Int(exp)) => {
+                    Ok(Value::Int(base.pow(*exp as u32)))
+                }
+                (Value::Float(base), Value::Float(exp)) => {
+                    Ok(Value::Float(base.powf(*exp)))
+                }
+                _ => Err("pow() requires numeric arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_math_sqrt".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("sqrt() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Int(i) => {
+                    let result = (*i as f64).sqrt();
+                    if result.fract() == 0.0 {
+                        Ok(Value::Int(result as i64))
+                    } else {
+                        Ok(Value::Float(result))
+                    }
+                }
+                Value::Float(f) => {
+                    let result = f.sqrt();
+                    if result.fract() == 0.0 {
+                        Ok(Value::Int(result as i64))
+                    } else {
+                        Ok(Value::Float(result))
+                    }
+                }
+                _ => Err("sqrt() requires numeric argument".to_string())
+            }
+        }));
     }
     
     fn execute(&mut self, stmt: &Stmt) -> Result<Value, String> {
@@ -294,75 +645,80 @@ impl Interpreter {
         if module.starts_with("std.") {
             let module_name = module.strip_prefix("std.").unwrap();
             
-            match module_name {
-                "io" => {
-                    if let Some(item_list) = items {
-                        for item in item_list {
-                            match item {
-                                ImportItem::Simple(name) => {
-                                    self.import_from_io(name)?;
-                                }
-                                ImportItem::Aliased { name, alias: a } => {
-                                    self.import_from_io(name)?;
-                                    let val = self.env.get(name).map_err(|_| format!("Unknown import: {}", name))?;
-                                    self.define_variable(a.clone(), val);
-                                }
-                            }
+            // Load the module from stdlib
+            let module_env = self.load_stdlib_module(module_name)?;
+            
+            if let Some(item_list) = items {
+                // Import specific items from the module
+                for item in item_list {
+                    match item {
+                        ImportItem::Simple(name) => {
+                            let val = module_env.get(name)
+                                .map_err(|_| format!("'{}' is not exported by module '{}'", name, module))?;
+                            self.define_variable(name.clone(), val);
+                        }
+                        ImportItem::Aliased { name, alias: a } => {
+                            let val = module_env.get(name)
+                                .map_err(|_| format!("'{}' is not exported by module '{}'", name, module))?;
+                            self.define_variable(a.clone(), val);
                         }
                     }
                 }
-                "math" => {
-                    let name = alias.cloned().unwrap_or_else(|| "math".to_string());
-                    self.define_variable(name, Value::Module("math".to_string()));
+            } else {
+                // Import the module itself
+                let name = alias.cloned().unwrap_or_else(|| module_name.to_string());
+                
+                // Check if we already have this module loaded
+                if let Some(cached) = self.loaded_modules.get(module_name) {
+                    self.define_variable(name, Value::ModuleEnv(Rc::clone(cached)));
+                } else {
+                    self.define_variable(name, Value::ModuleEnv(Rc::clone(&module_env)));
                 }
-                "list" => {
-                    let name = alias.cloned().unwrap_or_else(|| "list".to_string());
-                    self.define_variable(name, Value::Module("list".to_string()));
-                }
-                "fs" => {
-                    let name = alias.cloned().unwrap_or_else(|| "fs".to_string());
-                    self.define_variable(name, Value::Module("fs".to_string()));
-                }
-                "env" => {
-                    let name = alias.cloned().unwrap_or_else(|| "env".to_string());
-                    self.define_variable(name, Value::Module("env".to_string()));
-                }
-                "time" => {
-                    let name = alias.cloned().unwrap_or_else(|| "time".to_string());
-                    self.define_variable(name, Value::Module("time".to_string()));
-                }
-                _ => return Err(format!("Unknown module: {}", module)),
             }
         }
-        
+
         Ok(())
     }
-    
-    fn import_from_io(&mut self, name: &str) -> Result<(), String> {
-        match name {
-            "print" => {
-                self.define_variable(name.to_string(), Value::NativeFunction(|args| {
-                    if args.is_empty() {
-                        return Ok(Value::Void);
-                    }
-                    print!("{}", args[0]);
-                    Ok(Value::Void)
-                }));
-            }
-            "println" => {
-                self.define_variable(name.to_string(), Value::NativeFunction(|args| {
-                    if args.is_empty() {
-                        println!();
-                        return Ok(Value::Void);
-                    }
-                    println!("{}", args[0]);
-                    Ok(Value::Void)
-                }));
-            }
-            _ => return Err(format!("Unknown export from std.io: {}", name)),
+
+    fn load_stdlib_module(&mut self, module_name: &str) -> Result<Rc<Environment>, String> {
+        // Check if already loaded
+        if let Some(cached) = self.loaded_modules.get(module_name) {
+            return Ok(Rc::clone(cached));
         }
-        
-        Ok(())
+
+        // Construct path to module's package.fl
+        let module_path = format!("{}/{}/package.fl", self.stdlib_path, module_name);
+
+        // Read the source file
+        let source = fs::read_to_string(&module_path)
+            .map_err(|e| format!("Failed to load module '{}': {}\n  Expected file at: {}", module_name, e, module_path))?;
+
+        let source_rc = Rc::new(source.clone());
+
+        // Lex the source
+        let mut lexer = Lexer::new(&source);
+        let tokens = lexer.tokenize()
+            .map_err(|e| format!("Lexer error in module '{}': {:?}", module_name, e))?;
+
+        // Parse the source
+        let mut parser = Parser::new(tokens, Rc::clone(&source_rc));
+        let program = parser.parse()
+            .map_err(|e| format!("Parser error in module '{}': {:?}", module_name, e))?;
+
+        // Create a new environment for the module with enclosing pointing to builtins
+        let module_env = Rc::new(Environment::with_enclosing(Rc::clone(&self.env)));
+
+        // Execute the module in its own environment
+        let old_env = std::mem::replace(&mut self.env, Rc::clone(&module_env));
+        for stmt in &program.statements {
+            let _ = self.execute(stmt);
+        }
+        self.env = old_env;
+
+        // Cache and return the module environment
+        self.loaded_modules.insert(module_name.to_string(), Rc::clone(&module_env));
+
+        Ok(module_env)
     }
     
     fn evaluate(&mut self, expr: &Expr) -> Result<Value, String> {
@@ -509,6 +865,20 @@ impl Interpreter {
                     }
                     Value::Module(module_name) => {
                         self.call_module_method(&module_name, method, &arg_values)
+                    }
+                    Value::ModuleEnv(module_env) => {
+                        // Call function from module environment
+                        let func_val = module_env.get(method)
+                            .map_err(|_| format!("Function '{}' not found in module", method))?;
+                        match func_val {
+                            Value::Function(func) => {
+                                return self.call_function(&func, &arg_values, None);
+                            }
+                            Value::NativeFunction(native) => {
+                                return native(&arg_values);
+                            }
+                            _ => Err(format!("'{}' is not a function in module", method)),
+                        }
                     }
                     _ => Err(format!("Cannot call method '{}' on this value", method)),
                 }
@@ -780,6 +1150,20 @@ impl Interpreter {
                         // Module method
                         return self.call_module_method(&module_name, method_name, &args);
                     }
+                    Value::ModuleEnv(module_env) => {
+                        // Call function from module environment
+                        let func_val = module_env.get(method_name)
+                            .map_err(|_| format!("Function '{}' not found in module", method_name))?;
+                        match func_val {
+                            Value::Function(func) => {
+                                return self.call_function(&func, &args, None);
+                            }
+                            Value::NativeFunction(native) => {
+                                return native(&args);
+                            }
+                            _ => return Err(format!("'{}' is not a function in module", method_name)),
+                        }
+                    }
                     _ => return Err(format!("Cannot call method '{}' on {:?}", method_name, obj_val)),
                 }
             } else {
@@ -794,12 +1178,27 @@ impl Interpreter {
                 if let Some(dot_pos) = before_paren.rfind('.') {
                     let module_name = &before_paren[..dot_pos];
                     let method_name = &before_paren[dot_pos + 1..];
-                    
+
                     let module_val = self.env.get(module_name)?;
-                    if let Value::Module(mod_name) = module_val {
-                        return self.call_module_method(&mod_name, method_name, &args);
+                    match module_val {
+                        Value::Module(mod_name) => {
+                            return self.call_module_method(&mod_name, method_name, &args);
+                        }
+                        Value::ModuleEnv(module_env) => {
+                            let func_val = module_env.get(method_name)
+                                .map_err(|_| format!("Function '{}' not found in module", method_name))?;
+                            match func_val {
+                                Value::Function(func) => {
+                                    return self.call_function(&func, &args, None);
+                                }
+                                Value::NativeFunction(native) => {
+                                    return native(&args);
+                                }
+                                _ => return Err(format!("'{}' is not a function in module", method_name)),
+                            }
+                        }
+                        _ => return Err(format!("Module '{}' not found", module_name)),
                     }
-                    return Err(format!("Module '{}' not found", module_name));
                 }
                 
                 // Simple function call
@@ -958,7 +1357,9 @@ impl Interpreter {
     }
     
     pub fn call_function(&mut self, func: &Function, args: &[Value], instance: Option<Rc<Object>>) -> Result<Value, String> {
-        let new_env = Environment::with_enclosing(Rc::clone(&self.env));
+        // Use the function's closure environment as the enclosing, or current env if not available
+        let enclosing = func.closure_env.clone().unwrap_or_else(|| Rc::clone(&self.env));
+        let new_env = Environment::with_enclosing(enclosing);
         let old_env = std::mem::replace(&mut self.env, Rc::new(new_env));
 
         if let Some(obj) = &instance {

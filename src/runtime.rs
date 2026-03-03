@@ -20,6 +20,7 @@ pub enum Value {
     NativeFunction(NativeFn),
     Interface(Rc<InterfaceDef>),
     Module(String),
+    ModuleEnv(Rc<Environment>),
 }
 
 impl Value {
@@ -69,6 +70,7 @@ impl fmt::Display for Value {
             Value::NativeFunction(_) => write!(f, "native fn"),
             Value::Interface(iface) => write!(f, "interface {}", iface.name),
             Value::Module(name) => write!(f, "module({})", name),
+            Value::ModuleEnv(_) => write!(f, "module"),
         }
     }
 }

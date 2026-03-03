@@ -1,0 +1,93 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.fs                                     ║
+// ║                  File System Operations                           ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Read file contents as string (builtin)
+fn read(path) -> str {
+    return builtin_fs_read(path);
+}
+
+/// Write string to file (builtin)
+fn write(path, content) -> void {
+    builtin_fs_write(path, content);
+}
+
+/// Append string to file (builtin)
+fn append(path, content) -> void {
+    builtin_fs_append(path, content);
+}
+
+/// Check if file exists (builtin)
+fn exists(path) -> bool {
+    return builtin_fs_exists(path);
+}
+
+/// Remove file (builtin)
+fn remove(path) -> void {
+    builtin_fs_remove(path);
+}
+
+/// Get directory name from path
+fn dirname(path) -> str {
+    var parts = path.split("/");
+    if parts.length() <= 1 {
+        return "";
+    }
+    var result = "";
+    var i = 0;
+    while i < parts.length() - 1 {
+        if i > 0 {
+            result = result + "/";
+        }
+        result = result + parts[i];
+        i = i + 1;
+    }
+    if result == "" {
+        return "/";
+    }
+    return result;
+}
+
+/// Get file name from path
+fn basename(path) -> str {
+    var parts = path.split("/");
+    return parts.last();
+}
+
+/// Get file extension
+fn extension(path) -> str {
+    var name = basename(path);
+    var parts = name.split(".");
+    if parts.length() <= 1 {
+        return "";
+    }
+    return parts.last();
+}
+
+/// Get file name without extension
+fn file_stem(path) -> str {
+    var name = basename(path);
+    var parts = name.split(".");
+    if parts.length() <= 1 {
+        return name;
+    }
+    var result = parts[0];
+    var i = 1;
+    while i < parts.length() - 1 {
+        result = result + "." + parts[i];
+        i = i + 1;
+    }
+    return result;
+}
+
+/// Create directory (builtin)
+fn create_dir(path) -> void {
+    builtin_fs_create_dir(path);
+}
+
+/// Read directory entries (builtin)
+fn read_dir(path) {
+    return builtin_fs_read_dir(path);
+}
