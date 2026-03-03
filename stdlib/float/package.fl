@@ -1,0 +1,82 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                       std.float                                   ║
+// ║                  Float Class and Methods                          ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Float class - wrapper for float primitive
+class float {
+    var _value: float;
+
+    /// Constructor - converts value to float
+    fn new(value) {
+        return builtin_float(value);
+    }
+
+    /// Convert to string
+    fn to_str(self) {
+        return builtin_float_to_str(self._value);
+    }
+
+    /// Convert to integer (truncates)
+    fn to_int(self) {
+        return builtin_float_to_int(self._value);
+    }
+
+    /// Absolute value
+    fn abs(self) {
+        return builtin_float_abs(self._value);
+    }
+
+    /// Floor (round down)
+    fn floor(self) {
+        return builtin_float_floor(self._value);
+    }
+
+    /// Ceiling (round up)
+    fn ceil(self) {
+        return builtin_float_ceil(self._value);
+    }
+
+    /// Round to nearest integer
+    fn round(self) {
+        return builtin_float_round(self._value);
+    }
+
+    /// Get fractional part
+    fn fract(self) {
+        return self._value - self.floor();
+    }
+
+    /// Check if positive
+    fn is_positive(self) {
+        return self._value > 0.0;
+    }
+
+    /// Check if negative
+    fn is_negative(self) {
+        return self._value < 0.0;
+    }
+
+    /// Check if zero
+    fn is_zero(self) {
+        return self._value == 0.0;
+    }
+
+    /// Check if finite (not infinity or NaN)
+    fn is_finite(self) {
+        return builtin_float_is_finite(self._value);
+    }
+
+    /// Check if NaN
+    fn is_nan(self) {
+        return builtin_float_is_nan(self._value);
+    }
+
+    /// Get sign (-1.0, 0.0, or 1.0)
+    fn sign(self) {
+        if self._value < 0.0 { return -1.0; }
+        if self._value > 0.0 { return 1.0; }
+        return 0.0;
+    }
+}

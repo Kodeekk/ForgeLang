@@ -53,12 +53,17 @@ impl Interpreter {
     
     pub fn interpret(&mut self, program: &Program) -> Result<Value, String> {
         self.setup_builtins();
+        // Load primitive type classes from stdlib
+        let _ = self.load_stdlib_module("str");
+        let _ = self.load_stdlib_module("int");
+        let _ = self.load_stdlib_module("float");
+        let _ = self.load_stdlib_module("bool");
         let mut result = Value::Void;
-        
+
         for stmt in &program.statements {
             result = self.execute(stmt)?;
         }
-        
+
         Ok(result)
     }
     
@@ -115,6 +120,87 @@ impl Interpreter {
                 return Ok(Value::Str("".to_string()));
             }
             Ok(Value::Str(format!("{}", args[0])))
+        }));
+
+        // String builtins
+        values.insert("builtin_str_length".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("length() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                Ok(Value::Int(s.chars().count() as i64))
+            } else {
+                Err("length() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_upper".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("upper() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                Ok(Value::Str(s.to_uppercase()))
+            } else {
+                Err("upper() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_lower".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("lower() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                Ok(Value::Str(s.to_lowercase()))
+            } else {
+                Err("lower() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_reverse".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("reverse() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                Ok(Value::Str(s.chars().rev().collect()))
+            } else {
+                Err("reverse() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_trim".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("trim() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                Ok(Value::Str(s.trim().to_string()))
+            } else {
+                Err("trim() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_contains".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("contains() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(substr)) = (&args[0], &args[1]) {
+                Ok(Value::Bool(s.contains(substr)))
+            } else {
+                Err("contains() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_split".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("split() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(delimiter)) = (&args[0], &args[1]) {
+                let parts: Vec<Value> = s.split(delimiter)
+                    .map(|p| Value::Str(p.to_string()))
+                    .collect();
+                Ok(Value::List(Rc::new(RefCell::new(parts))))
+            } else {
+                Err("split() requires string arguments".to_string())
+            }
         }));
 
         // Module placeholders (will be loaded from stdlib)
@@ -279,7 +365,7 @@ impl Interpreter {
                 return Err("set() requires 2 arguments".to_string());
             }
             if let (Value::Str(key), Value::Str(val)) = (&args[0], &args[1]) {
-                std::env::set_var(key, val);
+                unsafe { std::env::set_var(key, val); }
                 Ok(Value::Void)
             } else {
                 Err("set() requires string arguments".to_string())
@@ -302,7 +388,7 @@ impl Interpreter {
                 return Err("remove() requires 1 argument".to_string());
             }
             if let Value::Str(key) = &args[0] {
-                std::env::remove_var(key);
+                unsafe { std::env::remove_var(key); }
                 Ok(Value::Void)
             } else {
                 Err("remove() requires string argument".to_string())
@@ -410,6 +496,248 @@ impl Interpreter {
                     }
                 }
                 _ => Err("sqrt() requires numeric argument".to_string())
+            }
+        }));
+
+        // Primitive type constructor builtins
+        values.insert("builtin_str_ctor".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Str("".to_string()));
+            }
+            Ok(Value::Str(format!("{}", args[0])))
+        }));
+
+        values.insert("builtin_str_find".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("find() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(substr)) = (&args[0], &args[1]) {
+                match s.find(substr) {
+                    Some(idx) => Ok(Value::Int(idx as i64)),
+                    None => Ok(Value::Int(-1)),
+                }
+            } else {
+                Err("find() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_replace".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 3 {
+                return Err("replace() requires 3 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(old), Value::Str(new)) = (&args[0], &args[1], &args[2]) {
+                Ok(Value::Str(s.replace(old, new)))
+            } else {
+                Err("replace() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_starts_with".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("starts_with() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(prefix)) = (&args[0], &args[1]) {
+                Ok(Value::Bool(s.starts_with(prefix)))
+            } else {
+                Err("starts_with() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_ends_with".to_string(), Value::NativeFunction(|args| {
+            if args.len() < 2 {
+                return Err("ends_with() requires 2 arguments".to_string());
+            }
+            if let (Value::Str(s), Value::Str(suffix)) = (&args[0], &args[1]) {
+                Ok(Value::Bool(s.ends_with(suffix)))
+            } else {
+                Err("ends_with() requires string arguments".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_to_int".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_int() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                match s.parse::<i64>() {
+                    Ok(n) => Ok(Value::Int(n)),
+                    Err(_) => Err(format!("Cannot convert '{}' to int", s)),
+                }
+            } else {
+                Err("to_int() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_str_to_float".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_float() requires 1 argument".to_string());
+            }
+            if let Value::Str(s) = &args[0] {
+                match s.parse::<f64>() {
+                    Ok(n) => Ok(Value::Float(n)),
+                    Err(_) => Err(format!("Cannot convert '{}' to float", s)),
+                }
+            } else {
+                Err("to_float() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_int".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Int(0));
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Int(*i)),
+                Value::Float(f) => Ok(Value::Int(*f as i64)),
+                Value::Str(s) => {
+                    match s.parse::<i64>() {
+                        Ok(n) => Ok(Value::Int(n)),
+                        Err(_) => Err(format!("Cannot convert '{}' to int", s)),
+                    }
+                }
+                Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
+                _ => Err("Cannot convert to int".to_string())
+            }
+        }));
+
+        values.insert("builtin_int_to_str".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_str() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Str(format!("{}", i))),
+                _ => Err("to_str() requires int argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_int_to_float".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_float() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Float(*i as f64)),
+                _ => Err("to_float() requires int argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_int_abs".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("abs() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Int(i.abs())),
+                _ => Err("abs() requires int argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Float(0.0));
+            }
+            match &args[0] {
+                Value::Int(i) => Ok(Value::Float(*i as f64)),
+                Value::Float(f) => Ok(Value::Float(*f)),
+                Value::Str(s) => {
+                    match s.parse::<f64>() {
+                        Ok(n) => Ok(Value::Float(n)),
+                        Err(_) => Err(format!("Cannot convert '{}' to float", s)),
+                    }
+                }
+                Value::Bool(b) => Ok(Value::Float(if *b { 1.0 } else { 0.0 })),
+                _ => Err("Cannot convert to float".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_to_str".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_str() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Str(format!("{}", f))),
+                _ => Err("to_str() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_to_int".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("to_int() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Int(*f as i64)),
+                _ => Err("to_int() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_abs".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("abs() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Float(f.abs())),
+                _ => Err("abs() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_floor".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("floor() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Float(f.floor())),
+                _ => Err("floor() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_ceil".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("ceil() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Float(f.ceil())),
+                _ => Err("ceil() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_round".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("round() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Float(f.round())),
+                _ => Err("round() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_is_finite".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("is_finite() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Bool(f.is_finite())),
+                _ => Err("is_finite() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_float_is_nan".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("is_nan() requires 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Float(f) => Ok(Value::Bool(f.is_nan())),
+                _ => Err("is_nan() requires float argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_bool".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Ok(Value::Bool(false));
+            }
+            match &args[0] {
+                Value::Bool(b) => Ok(Value::Bool(*b)),
+                Value::Int(i) => Ok(Value::Bool(*i != 0)),
+                Value::Float(f) => Ok(Value::Bool(*f != 0.0)),
+                Value::Str(s) => Ok(Value::Bool(!s.is_empty())),
+                _ => Ok(Value::Bool(true))
             }
         }));
     }
@@ -836,7 +1164,7 @@ impl Interpreter {
                         if let Some(func) = obj_rc.methods.get(method).cloned() {
                             return self.call_function(&func, &arg_values, Some(Rc::clone(&obj_rc)));
                         }
-                        
+
                         // Check interface implementations
                         let key_format = format!("{}:{}", obj_rc.class_name, method);
                         for iface_name in &obj_rc.interface_impls {
@@ -847,18 +1175,31 @@ impl Interpreter {
                                 }
                             }
                         }
-                        
+
                         // Check class methods
                         if let Some(class_def) = self.classes.get(&obj_rc.class_name).cloned() {
                             if let Some(func) = class_def.methods.get(method).cloned() {
                                 return self.call_function(&func, &arg_values, Some(Rc::clone(&obj_rc)));
                             }
                         }
-                        
+
                         Err(format!("Method '{}' not found on {}", method, obj_rc.class_name))
                     }
                     Value::Str(s) => {
-                        self.call_string_method(&s, method, &arg_values)
+                        // String primitive - call str class method
+                        return self.call_primitive_method("str", method, &arg_values, Some(Value::Str(s)));
+                    }
+                    Value::Int(i) => {
+                        // Int primitive - call int class method
+                        return self.call_primitive_method("int", method, &arg_values, Some(Value::Int(i)));
+                    }
+                    Value::Float(f) => {
+                        // Float primitive - call float class method
+                        return self.call_primitive_method("float", method, &arg_values, Some(Value::Float(f)));
+                    }
+                    Value::Bool(b) => {
+                        // Bool primitive - call bool class method
+                        return self.call_primitive_method("bool", method, &arg_values, Some(Value::Bool(b)));
                     }
                     Value::List(list) => {
                         self.call_list_method(&list, method, &arg_values)
@@ -1027,7 +1368,7 @@ impl Interpreter {
         if args_str.trim().is_empty() {
             return Ok(Vec::new());
         }
-        
+
         let mut parsed_args = Vec::new();
         for arg in args_str.split(',') {
             let arg = arg.trim();
@@ -1042,6 +1383,18 @@ impl Interpreter {
                 parsed_args.push(Value::Bool(false));
             } else if arg.starts_with('"') && arg.ends_with('"') {
                 parsed_args.push(Value::Str(arg[1..arg.len()-1].to_string()));
+            } else if arg.starts_with("self.") {
+                // Handle self.property access
+                let prop_name = &arg[5..];
+                if let Ok(self_val) = self.env.get("__self__") {
+                    if let Value::Object(obj) = self_val {
+                        if let Some(val) = obj.fields.get(prop_name) {
+                            parsed_args.push(val.clone());
+                            continue;
+                        }
+                    }
+                }
+                return Err(format!("Property '{}' not found on self", prop_name));
             } else {
                 // Try as variable
                 if let Ok(val) = self.env.get(arg) {
@@ -1052,11 +1405,33 @@ impl Interpreter {
         Ok(parsed_args)
     }
     
+    /// Find the matching closing parenthesis, handling nesting
+    fn find_matching_paren(s: &str, start: usize) -> Option<usize> {
+        let mut depth = 1;
+        let chars: Vec<char> = s.chars().collect();
+        let mut i = start;
+        while i < chars.len() {
+            match chars[i] {
+                '(' => depth += 1,
+                ')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(i);
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        None
+    }
+
     fn evaluate_interpolation_expr(&mut self, expr_str: &str) -> Result<Value, String> {
         // Simple expression evaluator for interpolation
         // Supports: identifier, self.identifier, identifier.method(), identifier.property
+        // Also supports chained calls like s.trim().upper()
         let expr_str = expr_str.trim();
-        
+
         // Check for self.property or self.method()
         if expr_str.starts_with("self.") {
             let rest = &expr_str[5..];
@@ -1084,149 +1459,141 @@ impl Interpreter {
                 return Err(format!("Property '{}' not found on self", prop_name));
             }
         }
-        
-        // Check for method call: identifier.method(args) or identifier.method()
-        if let Some(paren_pos) = expr_str.find('(') {
-            // Find the object and method name
-            let before_paren = &expr_str[..paren_pos];
-            
-            // Find the last dot before the paren to separate object from method
-            if let Some(dot_pos) = before_paren.rfind('.') {
-                let obj_name = &before_paren[..dot_pos];
-                let method_name = &before_paren[dot_pos + 1..];
-                
-                // Extract arguments between parentheses
-                let args_start = paren_pos + 1;
-                let args_end = expr_str.rfind(')').unwrap_or(expr_str.len());
-                let args_str = &expr_str[args_start..args_end];
-                
-                // Get the object
-                let obj_val = self.env.get(obj_name);
-                
-                // If not found in environment, check if it's a class
-                let obj_val = if obj_val.is_err() {
-                    if let Some(class_def) = self.classes.get(obj_name) {
-                        // Return a special marker for class
-                        Ok(Value::Module(format!("class:{}", obj_name)))
-                    } else {
-                        obj_val
-                    }
-                } else {
-                    obj_val
-                }?;
-                
-                // Parse arguments (simple comma-separated for now)
-                let args = self.parse_interpolation_args(args_str)?;
-                
-                // Call method on object
-                match obj_val {
-                    Value::Object(obj) => {
-                        if let Some(func) = obj.methods.get(method_name) {
-                            return self.call_function(func, &args, Some(Rc::clone(&obj)));
-                        }
-                        // Check class methods
-                        if let Some(class_def) = self.classes.get(&obj.class_name).cloned() {
-                            if let Some(func) = class_def.methods.get(method_name) {
-                                return self.call_function(func, &args, Some(Rc::clone(&obj)));
-                            }
-                        }
-                        return Err(format!("Method '{}' not found on {}", method_name, obj.class_name));
-                    }
-                    Value::Str(s) => {
-                        // String method
-                        return self.call_string_method(&s, method_name, &args);
-                    }
-                    Value::Module(module_name) => {
-                        if module_name.starts_with("class:") {
-                            let class_name = &module_name[6..];
-                            // Call static method on class
-                            if let Some(class_def) = self.classes.get(class_name).cloned() {
-                                if let Some(func) = class_def.static_methods.get(method_name) {
-                                    return self.call_function(func, &args, None);
-                                }
-                            }
-                            return Err(format!("Static method '{}' not found on class {}", method_name, class_name));
-                        }
-                        // Module method
-                        return self.call_module_method(&module_name, method_name, &args);
-                    }
-                    Value::ModuleEnv(module_env) => {
-                        // Call function from module environment
-                        let func_val = module_env.get(method_name)
-                            .map_err(|_| format!("Function '{}' not found in module", method_name))?;
-                        match func_val {
-                            Value::Function(func) => {
-                                return self.call_function(&func, &args, None);
-                            }
-                            Value::NativeFunction(native) => {
-                                return native(&args);
-                            }
-                            _ => return Err(format!("'{}' is not a function in module", method_name)),
-                        }
-                    }
-                    _ => return Err(format!("Cannot call method '{}' on {:?}", method_name, obj_val)),
-                }
-            } else {
-                // Function call: function() or module.method()
-                // Extract arguments between parentheses
-                let args_start = paren_pos + 1;
-                let args_end = expr_str.rfind(')').unwrap_or(expr_str.len());
-                let args_str = &expr_str[args_start..args_end];
-                let args = self.parse_interpolation_args(args_str)?;
-                
-                // Check if this is a module.method() call
-                if let Some(dot_pos) = before_paren.rfind('.') {
-                    let module_name = &before_paren[..dot_pos];
-                    let method_name = &before_paren[dot_pos + 1..];
 
-                    let module_val = self.env.get(module_name)?;
-                    match module_val {
-                        Value::Module(mod_name) => {
-                            return self.call_module_method(&mod_name, method_name, &args);
+        // For method chains like s.trim().upper(), we need to evaluate left-to-right
+        // Find the LAST method call (rightmost pattern of ".method(" or just "method(")
+        // We need to find the rightmost '(' that has a '.' or start before it
+        let mut last_method_start = None;
+        let mut last_method_end = None;
+        let chars: Vec<char> = expr_str.chars().collect();
+        let mut i = 0;
+        while i < chars.len() {
+            if chars[i] == '(' {
+                // Find the start of this method name (go back to '.' or start)
+                let mut j = i;
+                while j > 0 && chars[j-1] != '.' && chars[j-1] != '(' && j > 0 {
+                    j -= 1;
+                }
+                last_method_start = Some(j);
+                last_method_end = Some(i);
+            }
+            i += 1;
+        }
+
+        if let Some(method_start) = last_method_start {
+            if let Some(paren_pos) = last_method_end {
+                let before_paren = &expr_str[..paren_pos];
+                
+                // Check if there's a '.' before this method (indicating object.method)
+                if method_start > 0 && chars[method_start - 1] == '.' {
+                    let obj_expr = &expr_str[..method_start - 1];
+                    let method_name = &expr_str[method_start..paren_pos];
+
+                    // Extract arguments between parentheses
+                    let args_start = paren_pos + 1;
+                    let args_end = Self::find_matching_paren(expr_str, args_start).unwrap_or(expr_str.len());
+                    let args_str = &expr_str[args_start..args_end];
+
+                    // Evaluate the object expression (could be a variable or another method call)
+                    let obj_val = self.evaluate_interpolation_expr(obj_expr)?;
+
+                    // Parse arguments
+                    let args = self.parse_interpolation_args(args_str)?;
+
+                    // Call method on object
+                    return self.call_method_on_value(obj_val, method_name, &args);
+                } else {
+                    // Simple function call: function()
+                    let func_name = before_paren;
+                    let args_start = paren_pos + 1;
+                    let args_end = Self::find_matching_paren(expr_str, args_start).unwrap_or(expr_str.len());
+                    let args_str = &expr_str[args_start..args_end];
+                    let args = self.parse_interpolation_args(args_str)?;
+
+                    let func_val = self.env.get(func_name)?;
+                    match func_val {
+                        Value::Function(func) => {
+                            return self.call_function(&func, &args, None);
                         }
-                        Value::ModuleEnv(module_env) => {
-                            let func_val = module_env.get(method_name)
-                                .map_err(|_| format!("Function '{}' not found in module", method_name))?;
-                            match func_val {
-                                Value::Function(func) => {
-                                    return self.call_function(&func, &args, None);
-                                }
-                                Value::NativeFunction(native) => {
-                                    return native(&args);
-                                }
-                                _ => return Err(format!("'{}' is not a function in module", method_name)),
-                            }
+                        Value::NativeFunction(native) => {
+                            return native(&args);
                         }
-                        _ => return Err(format!("Module '{}' not found", module_name)),
+                        _ => return Err(format!("'{}' is not a callable function", func_name)),
                     }
                 }
-                
-                // Simple function call
-                let func_name = before_paren;
-                let func_val = self.env.get(func_name)?;
-                if let Value::Function(func) = func_val {
-                    return self.call_function(&func, &args, None);
-                }
-                return Err(format!("Function '{}' not found", func_name));
             }
         }
-        
+
         // Check for property access: identifier.property
         if let Some(dot_pos) = expr_str.rfind('.') {
             let obj_name = &expr_str[..dot_pos];
             let prop_name = &expr_str[dot_pos + 1..];
-            
-            let obj_val = self.env.get(obj_name)?;
+
+            let obj_val = self.evaluate_interpolation_expr(obj_name)?;
             if let Value::Object(obj) = obj_val {
                 if let Some(val) = obj.fields.get(prop_name) {
                     return Ok(val.clone());
                 }
             }
-            return Err(format!("Property '{}' not found on {}", prop_name, obj_name));
+            return Err(format!("Property '{}' not found", prop_name));
         }
-        
+
         // Simple variable reference
         self.env.get(expr_str)
+    }
+
+    fn call_method_on_value(&mut self, obj_val: Value, method_name: &str, args: &[Value]) -> Result<Value, String> {
+        match obj_val {
+            Value::Object(obj_rc) => {
+                if let Some(func) = obj_rc.methods.get(method_name).cloned() {
+                    return self.call_function(&func, args, Some(Rc::clone(&obj_rc)));
+                }
+                if let Some(class_def) = self.classes.get(&obj_rc.class_name).cloned() {
+                    if let Some(func) = class_def.methods.get(method_name).cloned() {
+                        return self.call_function(&func, args, Some(Rc::clone(&obj_rc)));
+                    }
+                }
+                Err(format!("Method '{}' not found on {}", method_name, obj_rc.class_name))
+            }
+            Value::Str(s) => {
+                return self.call_primitive_method("str", method_name, args, Some(Value::Str(s)));
+            }
+            Value::Int(i) => {
+                return self.call_primitive_method("int", method_name, args, Some(Value::Int(i)));
+            }
+            Value::Float(f) => {
+                return self.call_primitive_method("float", method_name, args, Some(Value::Float(f)));
+            }
+            Value::Bool(b) => {
+                return self.call_primitive_method("bool", method_name, args, Some(Value::Bool(b)));
+            }
+            Value::Module(module_name) => {
+                if module_name.starts_with("class:") {
+                    let class_name = &module_name[6..];
+                    if let Some(class_def) = self.classes.get(class_name).cloned() {
+                        if let Some(func) = class_def.static_methods.get(method_name) {
+                            return self.call_function(func, args, None);
+                        }
+                    }
+                    return Err(format!("Static method '{}' not found on class {}", method_name, class_name));
+                }
+                return self.call_module_method(&module_name, method_name, args);
+            }
+            Value::ModuleEnv(module_env) => {
+                let func_val = module_env.get(method_name)
+                    .map_err(|_| format!("Function '{}' not found in module", method_name))?;
+                match func_val {
+                    Value::Function(func) => {
+                        return self.call_function(&func, args, None);
+                    }
+                    Value::NativeFunction(native) => {
+                        return native(args);
+                    }
+                    _ => return Err(format!("'{}' is not a function in module", method_name)),
+                }
+            }
+            _ => Err(format!("Cannot call method '{}' on {:?}", method_name, obj_val)),
+        }
     }
     
     fn literal_to_value(&self, lit: &Literal) -> Result<Value, String> {
@@ -1395,7 +1762,42 @@ impl Interpreter {
         self.env = old_env;
         Ok(result)
     }
-    
+
+    fn call_primitive_method(&mut self, class_name: &str, method: &str, args: &[Value], self_val: Option<Value>) -> Result<Value, String> {
+        // Check loaded module environments for the class and method
+        if let Some(module_env) = self.loaded_modules.get(class_name) {
+            // Try to get the class from the module
+            if let Ok(Value::Class(class_def)) = module_env.get(class_name) {
+                if let Some(func) = class_def.methods.get(method) {
+                    if let Some(self_value) = self_val {
+                        let mut obj = Object::new(class_name.to_string());
+                        obj.fields.insert("_value".to_string(), self_value);
+                        let obj_rc = Rc::new(obj);
+                        return self.call_function(func, args, Some(obj_rc));
+                    } else {
+                        return self.call_function(func, args, None);
+                    }
+                }
+            }
+        }
+        
+        // Also check self.classes in case the class was registered there
+        if let Some(class_def) = self.classes.get(class_name).cloned() {
+            if let Some(func) = class_def.methods.get(method) {
+                if let Some(self_value) = self_val {
+                    let mut obj = Object::new(class_name.to_string());
+                    obj.fields.insert("_value".to_string(), self_value);
+                    let obj_rc = Rc::new(obj);
+                    return self.call_function(&func, args, Some(obj_rc));
+                } else {
+                    return self.call_function(&func, args, None);
+                }
+            }
+        }
+        
+        Err(format!("Cannot call method '{}' on {}", method, self_val.map_or("unknown".to_string(), |v| format!("{}", v))))
+    }
+
     fn call_string_method(&mut self, s: &str, method: &str, args: &[Value]) -> Result<Value, String> {
         match method {
             "trim" => Ok(Value::Str(s.trim().to_string())),
