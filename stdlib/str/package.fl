@@ -1,0 +1,90 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.str                                    ║
+// ║                  String Class and Methods                         ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// String class - wrapper for string primitive
+class str {
+    var _value: str;
+
+    /// Constructor - converts any value to string
+    fn new(value) {
+        return builtin_str_ctor(value);
+    }
+
+    /// Get string length
+    fn length(self) {
+        return builtin_str_length(self._value);
+    }
+
+    /// Convert to uppercase
+    fn upper(self) {
+        return builtin_str_upper(self._value);
+    }
+
+    /// Convert to lowercase
+    fn lower(self) {
+        return builtin_str_lower(self._value);
+    }
+
+    /// Reverse string
+    fn reverse(self) {
+        return builtin_str_reverse(self._value);
+    }
+
+    /// Trim whitespace
+    fn trim(self) {
+        return builtin_str_trim(self._value);
+    }
+
+    /// Check if contains substring
+    fn contains(self, substr) {
+        return builtin_str_contains(self._value, substr);
+    }
+
+    /// Split by delimiter
+    fn split(self, delimiter) {
+        return builtin_str_split(self._value, delimiter);
+    }
+
+    /// Get character at index
+    fn char_at(self, index) {
+        return self._value[index];
+    }
+
+    /// Find substring index
+    fn find(self, substr) {
+        return builtin_str_find(self._value, substr);
+    }
+
+    /// Replace substring
+    fn replace(self, old, new) {
+        return builtin_str_replace(self._value, old, new);
+    }
+
+    /// Starts with prefix
+    fn starts_with(self, prefix) {
+        return builtin_str_starts_with(self._value, prefix);
+    }
+
+    /// Ends with suffix
+    fn ends_with(self, suffix) {
+        return builtin_str_ends_with(self._value, suffix);
+    }
+
+    /// Convert to string (identity)
+    fn to_str(self) {
+        return self._value;
+    }
+
+    /// Convert to integer
+    fn to_int(self) {
+        return builtin_str_to_int(self._value);
+    }
+
+    /// Convert to float
+    fn to_float(self) {
+        return builtin_str_to_float(self._value);
+    }
+}

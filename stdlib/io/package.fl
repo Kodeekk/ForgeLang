@@ -1,0 +1,41 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.io                                     ║
+// ║                  Input/Output Operations                          ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+// Print without newline - builtin wrapper
+fn print(value) -> void {
+    builtin_print(value);
+}
+
+// Print with newline - builtin wrapper
+fn println(value) -> void {
+    builtin_println(value);
+}
+
+/// Print to stderr (builtin)
+fn eprint(value) -> void {
+    builtin_eprint(value);
+}
+
+/// Print to stderr with newline
+fn eprintln(value) -> void {
+    builtin_eprint(value);
+    builtin_eprint("\n");
+}
+
+/// Read a line from stdin (builtin)
+fn read_line() -> str {
+    return builtin_read_line();
+}
+
+/// Read all input from stdin (builtin)
+fn read_all() -> str {
+    return builtin_read_all();
+}
+
+/// Format value as string (builtin)
+fn format(value) -> str {
+    return builtin_format(value);
+}

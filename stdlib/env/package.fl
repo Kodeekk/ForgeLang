@@ -1,0 +1,60 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                       std.env                                     ║
+// ║                  Environment Operations                           ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Get current working directory (builtin)
+fn cwd() -> str {
+    return builtin_env_cwd();
+}
+
+/// Get home directory (builtin)
+fn home() -> str {
+    return builtin_env_home();
+}
+
+/// Get hostname (builtin)
+fn hostname() -> str {
+    return builtin_env_hostname();
+}
+
+/// Get OS name (builtin)
+fn os() -> str {
+    return builtin_env_os();
+}
+
+/// Get environment variable (builtin)
+fn get(name) -> str {
+    return builtin_env_get(name);
+}
+
+/// Set environment variable (builtin)
+fn set(name, value) -> void {
+    builtin_env_set(name, value);
+}
+
+/// Check if environment variable exists (builtin)
+fn has(name) -> bool {
+    return builtin_env_has(name);
+}
+
+/// Remove environment variable (builtin)
+fn remove(name) -> void {
+    builtin_env_remove(name);
+}
+
+/// Get all environment variables as list
+fn vars() {
+    return builtin_env_vars();
+}
+
+/// Get current user name
+fn user() -> str {
+    var home_path = home();
+    var parts = home_path.split("/");
+    if parts.length() > 0 {
+        return parts.last();
+    }
+    return "unknown";
+}

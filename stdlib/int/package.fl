@@ -1,0 +1,69 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.int                                    ║
+// ║                  Integer Class and Methods                        ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Integer class - wrapper for int primitive
+class int {
+    var _value: int;
+
+    /// Constructor - converts value to integer
+    fn new(value) {
+        return builtin_int(value);
+    }
+
+    /// Convert to string
+    fn to_str(self) {
+        return builtin_int_to_str(self._value);
+    }
+
+    /// Convert to float
+    fn to_float(self) {
+        return builtin_int_to_float(self._value);
+    }
+
+    /// Absolute value
+    fn abs(self) {
+        return builtin_int_abs(self._value);
+    }
+
+    /// Check if even
+    fn is_even(self) {
+        return self._value % 2 == 0;
+    }
+
+    /// Check if odd
+    fn is_odd(self) {
+        return self._value % 2 != 0;
+    }
+
+    /// Check if positive
+    fn is_positive(self) {
+        return self._value > 0;
+    }
+
+    /// Check if negative
+    fn is_negative(self) {
+        return self._value < 0;
+    }
+
+    /// Check if zero
+    fn is_zero(self) {
+        return self._value == 0;
+    }
+
+    /// Get sign (-1, 0, or 1)
+    fn sign(self) {
+        if self._value < 0 { return -1; }
+        if self._value > 0 { return 1; }
+        return 0;
+    }
+
+    /// Clamp between min and max
+    fn clamp(self, min_val, max_val) {
+        if self._value < min_val { return min_val; }
+        if self._value > max_val { return max_val; }
+        return self._value;
+    }
+}
