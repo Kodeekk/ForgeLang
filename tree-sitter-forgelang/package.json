@@ -1,0 +1,16 @@
+{
+  "name": "tree-sitter-forgelang",
+  "version": "1.0.0",
+  "description": "Tree-sitter grammar for ForgeLang programming language",
+  "main": "bindings/node",
+  "keywords": ["tree-sitter", "parser", "forgelang"],
+  "author": "ForgeLang Team",
+  "license": "MIT",
+  "tree-sitter": [
+    {
+      "scope": "source.fl",
+      "file-types": ["fl"],
+      "injection-regex": "^forgelang$"
+    }
+  ]
+}
