@@ -42,6 +42,7 @@ pub enum TypeAnnotation {
     List(Box<TypeAnnotation>),
     Class(String),
     Fn(Vec<TypeAnnotation>, Box<TypeAnnotation>),
+    Tuple(Vec<TypeAnnotation>),
 }
 
 impl fmt::Display for TypeAnnotation {
@@ -57,6 +58,10 @@ impl fmt::Display for TypeAnnotation {
             TypeAnnotation::Fn(args, ret) => {
                 let args_str: Vec<String> = args.iter().map(|a| format!("{}", a)).collect();
                 write!(f, "fn({}) -> {}", args_str.join(", "), ret)
+            }
+            TypeAnnotation::Tuple(types) => {
+                let types_str: Vec<String> = types.iter().map(|t| format!("{}", t)).collect();
+                write!(f, "({})", types_str.join(", "))
             }
         }
     }
@@ -115,6 +120,7 @@ pub enum Expr {
         parts: Vec<StringInterpPart>,
     },
     Self_,
+    TupleLiteral(Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]
@@ -206,7 +212,7 @@ pub struct InterfaceMethod {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     VarDecl {
-        name: String,
+        pattern: Pattern,
         var_type: Option<TypeAnnotation>,
         initializer: Option<Expr>,
         location: Option<Location>,
@@ -257,7 +263,7 @@ pub enum Stmt {
         location: Option<Location>,
     },
     For {
-        var_name: String,
+        pattern: Pattern,
         iterable: Expr,
         body: Vec<Stmt>,
         location: Option<Location>,
@@ -304,6 +310,15 @@ pub enum MatchPattern {
     Literal(Literal),
     Ident(String),
     Underscore,
+    Tuple(Vec<MatchPattern>),
+}
+
+/// Pattern for destructuring in variable declarations and for loops
+#[derive(Debug, Clone)]
+pub enum Pattern {
+    Ident(String),
+    Underscore,
+    Tuple(Vec<Pattern>),
 }
 
 #[derive(Debug, Clone)]

@@ -15,6 +15,7 @@ pub enum TypeInfo {
     Void,
     List(Box<TypeInfo>),
     Class(String),
+    Tuple(Vec<TypeInfo>),
     Unknown,
 }
 
@@ -28,6 +29,10 @@ impl std::fmt::Display for TypeInfo {
             TypeInfo::Void => write!(f, "void"),
             TypeInfo::List(t) => write!(f, "list<{}>", t),
             TypeInfo::Class(name) => write!(f, "{}", name),
+            TypeInfo::Tuple(types) => {
+                let types_str: Vec<String> = types.iter().map(|t| format!("{}", t)).collect();
+                write!(f, "({})", types_str.join(", "))
+            }
             TypeInfo::Unknown => write!(f, "unknown"),
         }
     }
@@ -77,6 +82,38 @@ impl ScopeAnalyzer {
     fn define_var(&mut self, name: &str, ty: TypeInfo) {
         if let Some(scope) = self.scopes.last_mut() {
             scope.insert(name.to_string(), ty);
+        }
+    }
+
+    /// Bind a pattern to a type, handling tuple destructuring
+    fn bind_pattern_type(&mut self, pattern: &Pattern, ty: &TypeInfo) {
+        match pattern {
+            Pattern::Ident(name) => {
+                self.define_var(name, ty.clone());
+            }
+            Pattern::Underscore => {
+                // Ignore
+            }
+            Pattern::Tuple(patterns) => {
+                if let TypeInfo::Tuple(element_types) = ty {
+                    if patterns.len() != element_types.len() {
+                        self.errors.error(
+                            CompileError::type_error(codes::TYPE_MISMATCH,
+                                format!("Tuple pattern has {} elements but type has {}",
+                                    patterns.len(), element_types.len()))
+                        );
+                    } else {
+                        for (i, pattern) in patterns.iter().enumerate() {
+                            self.bind_pattern_type(pattern, &element_types[i]);
+                        }
+                    }
+                } else {
+                    self.errors.error(
+                        CompileError::type_error(codes::TYPE_MISMATCH,
+                            "Cannot destructure non-tuple type with tuple pattern")
+                    );
+                }
+            }
         }
     }
 
@@ -172,7 +209,7 @@ impl ScopeAnalyzer {
 
     fn analyze_stmt(&mut self, stmt: &Stmt) {
         match stmt {
-            Stmt::VarDecl { name, var_type, initializer, location } => {
+            Stmt::VarDecl { pattern, var_type, initializer, location } => {
                 if let Some(init) = initializer {
                     let init_type = self.infer_expr_type(init);
                     // Check type compatibility if type annotation exists
@@ -184,21 +221,21 @@ impl ScopeAnalyzer {
                                 .unwrap_or_else(|| Span::new(0, 0, self.errors.source.clone().unwrap()));
                             self.errors.error(
                                 CompileError::type_error(codes::TYPE_MISMATCH,
-                                    format!("Cannot assign value of type '{}' to variable of type '{}'", 
+                                    format!("Cannot assign value of type '{}' to variable of type '{}'",
                                         init_type, expected))
                                     .with_span(span)
                                     .with_hint(format!("Consider changing the type to '{}' or use a compatible value", init_type))
                             );
                         }
                     }
-                    self.define_var(name, init_type);
+                    self.bind_pattern_type(pattern, &init_type);
                 } else {
                     // No initializer - use annotated type or Unknown
                     let ty = var_type
                         .as_ref()
                         .map(|t| self.type_from_annotation(t))
                         .unwrap_or(TypeInfo::Unknown);
-                    self.define_var(name, ty);
+                    self.bind_pattern_type(pattern, &ty);
                 }
             }
             Stmt::ConstDecl { name, const_type, value, location } => {
@@ -380,10 +417,17 @@ impl ScopeAnalyzer {
                     self.pop_scope();
                 }
             }
-            Stmt::For { var_name, iterable, body, .. } => {
+            Stmt::For { pattern, iterable, body, .. } => {
                 self.analyze_expr(iterable);
                 self.push_scope();
-                self.define_var(var_name, TypeInfo::Unknown);
+                let iter_type = self.infer_expr_type(iterable);
+                // Get the element type from the iterable
+                let elem_type = match iter_type {
+                    TypeInfo::List(inner) => *inner,
+                    TypeInfo::Tuple(ref elements) if !elements.is_empty() => elements[0].clone(),
+                    _ => TypeInfo::Unknown,
+                };
+                self.bind_pattern_type(pattern, &elem_type);
                 for s in body {
                     self.analyze_stmt(s);
                 }
@@ -500,6 +544,11 @@ impl ScopeAnalyzer {
                 self.pop_scope();
             }
             Expr::ListLiteral(elements) => {
+                for elem in elements {
+                    self.analyze_expr(elem);
+                }
+            }
+            Expr::TupleLiteral(elements) => {
                 for elem in elements {
                     self.analyze_expr(elem);
                 }
@@ -650,6 +699,12 @@ impl ScopeAnalyzer {
                     TypeInfo::List(Box::new(elem_type))
                 }
             }
+            Expr::TupleLiteral(elements) => {
+                let elem_types: Vec<TypeInfo> = elements.iter()
+                    .map(|e| self.infer_expr_type(e))
+                    .collect();
+                TypeInfo::Tuple(elem_types)
+            }
             Expr::ClassLiteral { class_name, .. } => {
                 TypeInfo::Class(class_name.clone())
             }
@@ -686,6 +741,9 @@ impl ScopeAnalyzer {
             }
             TypeAnnotation::Class(name) => TypeInfo::Class(name.clone()),
             TypeAnnotation::Fn(_, _) => TypeInfo::Class("Function".to_string()),
+            TypeAnnotation::Tuple(types) => {
+                TypeInfo::Tuple(types.iter().map(|t| self.type_from_annotation(t)).collect())
+            }
         }
     }
 
@@ -695,25 +753,38 @@ impl ScopeAnalyzer {
         if a == b {
             return true;
         }
-        
+
         // Unknown is compatible with anything (for type inference)
         if a == &TypeInfo::Unknown || b == &TypeInfo::Unknown {
             return true;
         }
-        
+
         // Int and Float are compatible (Int can be promoted to Float)
         if (a == &TypeInfo::Int && b == &TypeInfo::Float) ||
            (a == &TypeInfo::Float && b == &TypeInfo::Int) {
             return true;
         }
-        
+
         // list<unknown> is compatible with any list type (for empty list literals)
         if let (TypeInfo::List(inner_a), TypeInfo::List(inner_b)) = (a, b) {
             if inner_a.as_ref() == &TypeInfo::Unknown || inner_b.as_ref() == &TypeInfo::Unknown {
                 return true;
             }
         }
-        
+
+        // Tuple compatibility: same length and compatible element types
+        if let (TypeInfo::Tuple(elements_a), TypeInfo::Tuple(elements_b)) = (a, b) {
+            if elements_a.len() != elements_b.len() {
+                return false;
+            }
+            for (type_a, type_b) in elements_a.iter().zip(elements_b.iter()) {
+                if !self.types_compatible(type_a, type_b) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         false
     }
 }
