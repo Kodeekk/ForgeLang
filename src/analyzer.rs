@@ -85,15 +85,12 @@ impl ScopeAnalyzer {
         }
     }
 
-    /// Bind a pattern to a type, handling tuple destructuring
     fn bind_pattern_type(&mut self, pattern: &Pattern, ty: &TypeInfo) {
         match pattern {
             Pattern::Ident(name) => {
                 self.define_var(name, ty.clone());
             }
-            Pattern::Underscore => {
-                // Ignore
-            }
+            Pattern::Underscore => {}
             Pattern::Tuple(patterns) => {
                 if let TypeInfo::Tuple(element_types) = ty {
                     if patterns.len() != element_types.len() {
@@ -117,15 +114,12 @@ impl ScopeAnalyzer {
         }
     }
 
-    /// Get type of identifier from any scope
     fn get_type(&self, name: &str) -> Option<TypeInfo> {
-        // Check all scopes from innermost to outermost
         for scope in self.scopes.iter().rev() {
             if let Some(ty) = scope.get(name) {
                 return Some(ty.clone());
             }
         }
-        // Check module-level definitions
         if self.functions.contains(name) {
             return Some(TypeInfo::Class("Function".to_string()));
         }
@@ -407,7 +401,6 @@ impl ScopeAnalyzer {
                 self.analyze_expr(expr);
                 for arm in arms {
                     self.push_scope();
-                    // Pattern binding (if identifier pattern)
                     if let MatchPattern::Ident(name) = &arm.pattern {
                         self.define_var(name, TypeInfo::Unknown);
                     }
@@ -421,7 +414,6 @@ impl ScopeAnalyzer {
                 self.analyze_expr(iterable);
                 self.push_scope();
                 let iter_type = self.infer_expr_type(iterable);
-                // Get the element type from the iterable
                 let elem_type = match iter_type {
                     TypeInfo::List(inner) => *inner,
                     TypeInfo::Tuple(ref elements) if !elements.is_empty() => elements[0].clone(),

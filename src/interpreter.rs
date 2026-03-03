@@ -887,7 +887,6 @@ impl Interpreter {
                     let (matches, bindings) = self.match_pattern(&arm.pattern, &match_value);
 
                     if matches {
-                        // Bind any variables from the pattern
                         for (name, value) in bindings {
                             self.define_variable(name, value);
                         }
@@ -915,7 +914,6 @@ impl Interpreter {
                         }
                     }
                     Value::Tuple(tuple_items) => {
-                        // Iterate over tuple elements
                         for item in tuple_items.iter() {
                             self.bind_pattern(pattern, item.clone())?;
 
@@ -969,15 +967,12 @@ impl Interpreter {
         env_values.insert(name, value);
     }
 
-    /// Bind a pattern to a value, handling destructuring
     fn bind_pattern(&mut self, pattern: &Pattern, value: Value) -> Result<(), String> {
         match pattern {
             Pattern::Ident(name) => {
                 self.define_variable(name.clone(), value);
             }
-            Pattern::Underscore => {
-                // Ignore the value
-            }
+            Pattern::Underscore => {}
             Pattern::Tuple(patterns) => {
                 match value {
                     Value::Tuple(values) => {
@@ -1003,11 +998,9 @@ impl Interpreter {
         Ok(())
     }
 
-    /// Match a pattern against a value, returning (matches, bindings)
     fn match_pattern(&self, pattern: &MatchPattern, value: &Value) -> (bool, Vec<(String, Value)>) {
         match pattern {
             MatchPattern::Literal(lit) => {
-                // Convert literal to value and compare
                 match lit {
                     Literal::Int(i) => {
                         if let Value::Int(v) = value {
@@ -1043,11 +1036,9 @@ impl Interpreter {
                 }
             }
             MatchPattern::Ident(name) => {
-                // Bind the value to the identifier
                 (true, vec![(name.clone(), value.clone())])
             }
             MatchPattern::Underscore => {
-                // Always matches, no bindings
                 (true, vec![])
             }
             MatchPattern::Tuple(patterns) => {
