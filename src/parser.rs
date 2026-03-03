@@ -266,10 +266,9 @@ impl Parser {
         Ok(Stmt::VarDecl { pattern, var_type, initializer, location: Some(location) })
     }
 
-    /// Parse a pattern for destructuring: identifier or tuple of patterns
     fn parse_pattern(&mut self) -> Result<Pattern, String> {
         let token = self.peek().token_type.clone();
-        
+
         match token {
             TokenType::Ident(s) => {
                 self.advance();
@@ -280,8 +279,7 @@ impl Parser {
                 Ok(Pattern::Underscore)
             }
             TokenType::LParen => {
-                // Tuple pattern: (a, b, c) or (a, _, c)
-                self.advance(); // consume '('
+                self.advance();
                 let mut patterns = Vec::new();
 
                 if !self.check(TokenType::RParen) {
@@ -405,8 +403,7 @@ impl Parser {
                 Ok(TypeAnnotation::Fn(arg_types, ret_type))
             }
             TokenType::LParen => {
-                // Tuple type: (int, str, bool)
-                self.advance(); // consume '('
+                self.advance();
                 let mut types = Vec::new();
 
                 if !self.check(TokenType::RParen) {
@@ -1074,27 +1071,21 @@ impl Parser {
         match &token.token_type {
             TokenType::Ident(name) => Ok(Expr::Ident(name.clone())),
             TokenType::LParen => {
-                // Check if this is a tuple literal or parenthesized expression
-                // A tuple has at least one comma at the top level
                 if !self.check(TokenType::RParen) {
-                    // Peek ahead to check for comma
                     let mut elements = Vec::new();
                     elements.push(self.expression()?);
-                    
+
                     if self.check(TokenType::Comma) {
-                        // This is a tuple - continue parsing elements
                         while self.matches(TokenType::Comma) {
                             elements.push(self.expression()?);
                         }
                         self.expect(TokenType::RParen, "expected ')' after tuple")?;
                         return Ok(Expr::TupleLiteral(elements));
                     } else {
-                        // Not a tuple - this is a parenthesized expression
                         self.expect(TokenType::RParen, "expected ')' after expression")?;
                         return Ok(elements.remove(0));
                     }
                 } else {
-                    // Empty parentheses - consume and continue
                     self.expect(TokenType::RParen, "expected ')' after expression")?;
                     return Err("Empty parentheses are not valid".to_string());
                 }
@@ -1102,9 +1093,9 @@ impl Parser {
             _ => Err(format!("Expected expression, got {:?}", token.token_type)),
         }
     }
-    
+
     fn lambda_expr(&mut self) -> Result<Expr, String> {
-        self.advance(); // consume 'fn'
+        self.advance();
         self.expect(TokenType::LParen, "expected '(' after 'fn' in lambda")?;
         let params = self.parse_params()?;
         self.expect(TokenType::RParen, "expected ')' after lambda parameters")?;
