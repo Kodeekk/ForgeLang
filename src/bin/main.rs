@@ -10,18 +10,30 @@ use forgelang::cli::style;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 2 {
-        eprintln!("Usage: {} <input.fl>", args[0]);
-        process::exit(1);
-    }
+    // Check for --check flag
+    let check_only = args.iter().any(|a| a == "--check");
+
+    // Find the input file (skip flags and args[0] which is the binary path)
+    let input_file = args.iter()
+        .skip(1)  // Skip args[0] (binary path)
+        .find(|a| !a.starts_with('-'))
+        .map(|s| s.as_str());
+
+    let input_file = match input_file {
+        Some(f) => f,
+        None => {
+            eprintln!("Usage: {} [--check] <input.fl>", args[0]);
+            process::exit(1);
+        }
+    };
 
     // Read source file
-    let source = match fs::read_to_string(&args[1]) {
+    let source = match fs::read_to_string(input_file) {
         Ok(content) => content,
         Err(e) => {
             eprintln!("{}: Cannot read file '{}'",
                 if e.kind() == std::io::ErrorKind::NotFound { "error" } else { "error" },
-                args[1]);
+                input_file);
             eprintln!("  {}", e);
             process::exit(1);
         }
@@ -29,10 +41,17 @@ fn main() {
 
     let source_rc = Rc::new(source.clone());
 
-    println!("{} {} '{}'",
-        style::cyan("Checking"),
-        style::blue("ForgeLang"),
-        args[1]);
+    if check_only {
+        println!("{} {} '{}'",
+            style::cyan("Checking"),
+            style::blue("ForgeLang"),
+            input_file);
+    } else {
+        println!("{} {} '{}'",
+            style::cyan("Running"),
+            style::blue("ForgeLang"),
+            input_file);
+    }
     println!();
 
     // Phase 1: Lexing
@@ -113,7 +132,20 @@ fn main() {
         }
     }
 
-    // Phase 4: Interpretation (only if no errors)
+    // If check-only mode, stop here
+    if check_only {
+        if all_errors.is_empty() {
+            println!(
+                "{} {} in {}",
+                style::green("Finished"),
+                style::blue("check"),
+                style::bold("0.0s")
+            );
+        }
+        process::exit(0);
+    }
+
+    // Phase 4: Interpretation (only if no errors and not check-only)
     let mut interpreter = Interpreter::new();
     match interpreter.interpret(&program) {
         Ok(_) => {

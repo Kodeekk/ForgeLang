@@ -783,7 +783,7 @@ impl Interpreter {
                 let mut class_def = ClassDef::new(name.clone());
                 class_def.fields = fields.clone();
                 class_def.implements = implements.clone();
-                
+
                 for method in methods {
                     let func = Rc::new(Function {
                         name: method.name.clone(),
@@ -793,16 +793,20 @@ impl Interpreter {
                         closure_env: Some(Rc::clone(&self.env)),
                         is_method: true,
                     });
-                    
-                    if method.name == "new" || method.name == "origin" || 
+
+                    if method.name == "new" || method.name == "origin" ||
                        method.name == "create" || method.name == "from" {
                         class_def.static_methods.insert(method.name.clone(), func);
                     } else {
                         class_def.methods.insert(method.name.clone(), func);
                     }
                 }
+
+                let class_rc = Rc::new(class_def);
                 
-                self.classes.insert(name.clone(), Rc::new(class_def));
+                // Register the class itself as a value (constructor)
+                self.classes.insert(name.clone(), Rc::clone(&class_rc));
+                self.define_variable(name.clone(), Value::Class(class_rc));
                 Ok(Value::Void)
             }
             Stmt::InterfaceDecl { name, methods, .. } => {
@@ -1228,13 +1232,29 @@ impl Interpreter {
             Expr::Call { callee, args } => {
                 let func_val = self.evaluate(callee)?;
                 let arg_values: Vec<Value> = args.iter().map(|a| self.evaluate(a)).collect::<Result<_, _>>()?;
-                
+
                 match func_val {
                     Value::Function(func) => {
                         self.call_function(&func, &arg_values, None)
                     }
                     Value::NativeFunction(native) => {
                         native(&arg_values)
+                    }
+                    Value::Class(class_def) => {
+                        // Create a new instance of the class
+                        let mut methods = HashMap::new();
+                        for (method_name, method_fn) in &class_def.methods {
+                            methods.insert(method_name.clone(), Rc::clone(method_fn));
+                        }
+                        
+                        let obj = Rc::new(Object {
+                            class_name: class_def.name.clone(),
+                            fields: HashMap::new(),
+                            methods: methods,
+                            interface_impls: class_def.implements.clone(),
+                        });
+                        
+                        Ok(Value::Object(obj))
                     }
                     _ => Err(format!("Cannot call non-function value")),
                 }

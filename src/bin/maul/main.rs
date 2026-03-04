@@ -96,10 +96,7 @@ fn cmd_new(name: &str) {
         .expect("Failed to write maul.yaml");
 
     // Write src/main.fl
-    let main_fl = r#"// Welcome to ForgeLang!
-// Run with: maul run
-
-import [println] from std.io;
+    let main_fl = r#"import [println] from std.io;
 
 fn main() -> int {
     println("Hello, ForgeLang!");
@@ -110,23 +107,17 @@ fn main() -> int {
         .expect("Failed to write src/main.fl");
 
     // Write .gitignore
-    let gitignore = r#"target/
-*.flc
-maul.yaml
+    let gitignore = r#"comp/
+*.flb
 "#;
     fs::write(project_dir.join(".gitignore"), gitignore)
         .expect("Failed to write .gitignore");
 
     println!(
-        "{} {} project '{}'",
+        "{} '{}' project",
         style::green("Created"),
-        style::cyan("ForgeLang"),
         style::bold(name)
     );
-    println!();
-    println!("To get started, run:");
-    println!("  cd {}", name);
-    println!("  maul run");
 }
 
 fn cmd_init() {
@@ -165,10 +156,7 @@ fn cmd_init() {
     // Create main.fl if it doesn't exist
     let main_fl_path = src_dir.join("main.fl");
     if !main_fl_path.exists() {
-        let main_fl = r#"// Welcome to ForgeLang!
-// Run with: maul run
-
-fn main() -> int {
+        let main_fl = r#"fn main() -> int {
     builtin_println("Hello, ForgeLang!");
     return 0;
 }
@@ -252,23 +240,17 @@ fn cmd_check() {
 
     // Get the path to the fl binary (same directory as maul)
     let fl_path = get_fl_binary_path();
-    
-    // Run fl to check the file (fl already does full check + run)
+
+    // Run fl with --check flag (syntax/type check only, no execution)
     let status = Command::new(&fl_path)
         .arg(&entry_path)
+        .arg("--check")
         .status()
         .expect("Failed to run fl");
-    
+
     if !status.success() {
         process::exit(status.code().unwrap_or(1));
     }
-    
-    println!(
-        "{} {} in {}",
-        style::green("Finished"),
-        style::blue("check"),
-        style::bold("0.0s")
-    );
 }
 
 fn cmd_clean() {
