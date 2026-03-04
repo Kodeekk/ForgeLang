@@ -57,9 +57,24 @@ struct ScopeAnalyzer {
 
 impl ScopeAnalyzer {
     pub fn new(source: Rc<String>) -> Self {
+        let mut scopes = vec![HashMap::new()]; // Start with global scope
+        
+        // Register builtin functions so they're known during analysis
+        let builtins = [
+            "builtin_print",
+            "builtin_println",
+            "builtin_eprint",
+            "builtin_eprintln",
+            "builtin_read_line",
+            "builtin_read_all",
+        ];
+        for builtin in &builtins {
+            scopes[0].insert(builtin.to_string(), TypeInfo::Class("builtin".to_string()));
+        }
+        
         ScopeAnalyzer {
             errors: ErrorCollector::new().with_source(source),
-            scopes: vec![HashMap::new()], // Start with global scope
+            scopes,
             functions: HashSet::new(),
             classes: HashSet::new(),
             interfaces: HashSet::new(),

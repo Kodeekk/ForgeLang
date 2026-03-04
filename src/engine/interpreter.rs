@@ -22,8 +22,14 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        // Determine stdlib path - check relative to executable first, then use compile-time path
-        let stdlib_path = if Path::new("stdlib").exists() {
+        // Determine stdlib path:
+        // 1. Check FORGELANG_STDLIB_PATH env var (set by maul or installer)
+        // 2. Check relative to current directory
+        // 3. Check relative to executable
+        // 4. Default to "stdlib"
+        let stdlib_path = if let Ok(path) = std::env::var("FORGELANG_STDLIB_PATH") {
+            path
+        } else if Path::new("stdlib").exists() {
             "stdlib".to_string()
         } else if let Ok(exe) = std::env::current_exe() {
             if let Some(parent) = exe.parent() {
