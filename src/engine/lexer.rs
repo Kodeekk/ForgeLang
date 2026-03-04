@@ -270,7 +270,7 @@ impl Lexer {
         }
         Err("Unterminated string".to_string())
     }
-    
+    /*
     fn read_interpolated_string(&mut self) -> Result<Vec<StringInterpSegment>, String> {
         self.advance(); // skip opening quote
         let mut segments = Vec::new();
@@ -367,7 +367,7 @@ impl Lexer {
         }
         Err("Unterminated interpolation".to_string())
     }
-    
+    */
     fn read_number(&mut self) -> TokenType {
         let mut num_str = String::new();
         let mut is_float = false;

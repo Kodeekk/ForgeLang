@@ -396,11 +396,11 @@ impl<'a> fmt::Display for FormattedError<'a> {
             if let Some(related_line) = related.span.get_line() {
                 let line_num = related.span.line;
                 if c {
-                    write!(f, "\x1b[1m\x1b[38;5;245m  --> \x1b[0m:{}:{}\n", line_num, related.span.column)?;
-                    write!(f, "\x1b[1m\x1b[38;5;245m   | \x1b[0m{}\n", related_line)?;
+                    writeln!(f, "\x1b[1m\x1b[38;5;245m  --> \x1b[0m:{}:{}\n", line_num, related.span.column)?;
+                    writeln!(f, "\x1b[1m\x1b[38;5;245m   | \x1b[0m{}\n", related_line)?;
                 } else {
-                    write!(f, "  --> :{}:{}\n", line_num, related.span.column)?;
-                    write!(f, "   | {}\n", related_line)?;
+                    writeln!(f, "  --> :{}:{}\n", line_num, related.span.column)?;
+                    writeln!(f, "   | {}\n", related_line)?;
                 }
             }
         }

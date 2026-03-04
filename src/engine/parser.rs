@@ -28,13 +28,13 @@ impl Parser {
     }
     
     fn peek(&self) -> &Token {
-        self.tokens.get(self.current).unwrap_or_else(|| {
+        self.tokens.get(self.current).unwrap_or({
             &Token { token_type: TokenType::Eof, line: 0, column: 0 }
         })
     }
     
     fn previous(&self) -> &Token {
-        self.tokens.get(self.current.saturating_sub(1)).unwrap_or_else(|| {
+        self.tokens.get(self.current.saturating_sub(1)).unwrap_or({
             &Token { token_type: TokenType::Eof, line: 0, column: 0 }
         })
     }
@@ -159,14 +159,14 @@ impl Parser {
                 let name_token = self.advance();
                 let name = match &name_token.token_type {
                     TokenType::Ident(s) => s.clone(),
-                    _ => return Err(format!("Expected identifier in import list")),
+                    _ => return Err("Expected identifier in import list".to_string()),
                 };
                 
                 if self.matches(TokenType::As) {
                     let alias_token = self.advance();
                     let alias = match &alias_token.token_type {
                         TokenType::Ident(s) => s.clone(),
-                        _ => return Err(format!("Expected alias identifier")),
+                        _ => return Err("Expected alias identifier".to_string()),
                     };
                     items.push(ImportItem::Aliased { name, alias });
                 } else {
@@ -192,7 +192,7 @@ impl Parser {
                 let alias_token = self.advance();
                 match &alias_token.token_type {
                     TokenType::Ident(s) => Some(s.clone()),
-                    _ => return Err(format!("Expected alias identifier")),
+                    _ => return Err("Expected alias identifier".to_string()),
                 }
             } else {
                 None
@@ -209,7 +209,7 @@ impl Parser {
         let first = self.advance();
         match &first.token_type {
             TokenType::Ident(s) => path.push_str(s),
-            _ => return Err(format!("Expected identifier in module path")),
+            _ => return Err("Expected identifier in module path".to_string()),
         }
         
         while self.matches(TokenType::Dot) {
@@ -217,7 +217,7 @@ impl Parser {
             let part = self.advance();
             match &part.token_type {
                 TokenType::Ident(s) => path.push_str(s),
-                _ => return Err(format!("Expected identifier after '.' in module path")),
+                _ => return Err("Expected identifier after '.' in module path".to_string()),
             }
         }
         
@@ -228,7 +228,7 @@ impl Parser {
         let name_token = self.advance();
         let name = match &name_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected constant name")),
+            _ => return Err("Expected constant name".to_string()),
         };
         let location = Location::new(name_token.line, Rc::clone(&self.source));
 
@@ -302,7 +302,7 @@ impl Parser {
         let name_token = self.advance();
         let name = match &name_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected function name")),
+            _ => return Err("Expected function name".to_string()),
         };
         
         self.expect(TokenType::LParen, "expected '(' after function name")?;
@@ -334,7 +334,7 @@ impl Parser {
             let name = match &name_token.token_type {
                 TokenType::Ident(s) => s.clone(),
                 TokenType::Self_ => "self".to_string(),
-                _ => return Err(format!("Expected parameter name")),
+                _ => return Err("Expected parameter name".to_string()),
             };
 
             let param_type = if self.matches(TokenType::Colon) {
@@ -426,7 +426,7 @@ impl Parser {
         let name_token = self.advance();
         let name = match &name_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected class name")),
+            _ => return Err("Expected class name".to_string()),
         };
         
         let mut implements = Vec::new();
@@ -435,7 +435,7 @@ impl Parser {
                 let iface_token = self.advance();
                 let iface = match &iface_token.token_type {
                     TokenType::Ident(s) => s.clone(),
-                    _ => return Err(format!("Expected interface name")),
+                    _ => return Err("Expected interface name".to_string()),
                 };
                 implements.push(iface);
                 
@@ -456,7 +456,7 @@ impl Parser {
                 let name_token = self.advance();
                 let name = match &name_token.token_type {
                     TokenType::Ident(s) => s.clone(),
-                    _ => return Err(format!("Expected field name")),
+                    _ => return Err("Expected field name".to_string()),
                 };
                 
                 let field_type = if self.matches(TokenType::Colon) {
@@ -470,7 +470,7 @@ impl Parser {
             } else if self.check(TokenType::Fn) {
                 methods.push(self.parse_method()?);
             } else {
-                return Err(format!("Expected 'var' or 'fn' in class body"));
+                return Err("Expected 'var' or 'fn' in class body".to_string());
             }
         }
         
@@ -485,7 +485,7 @@ impl Parser {
         let name_token = self.advance();
         let name = match &name_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected method name")),
+            _ => return Err("Expected method name".to_string()),
         };
         
         let is_static = name != "self";
@@ -511,7 +511,7 @@ impl Parser {
         let name_token = self.advance();
         let name = match &name_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected interface name")),
+            _ => return Err("Expected interface name".to_string()),
         };
         
         self.expect(TokenType::LBrace, "expected '{' before interface body")?;
@@ -525,7 +525,7 @@ impl Parser {
                 let name_token = self.advance();
                 let name = match &name_token.token_type {
                     TokenType::Ident(s) => s.clone(),
-                    _ => return Err(format!("Expected method name")),
+                    _ => return Err("Expected method name".to_string()),
                 };
                 
                 self.expect(TokenType::LParen, "expected '(' after method name")?;
@@ -555,7 +555,7 @@ impl Parser {
         let iface_token = self.advance();
         let interface_name = match &iface_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected interface name")),
+            _ => return Err("Expected interface name".to_string()),
         };
         
         self.expect(TokenType::For, "expected 'for' after interface name")?;
@@ -563,7 +563,7 @@ impl Parser {
         let class_token = self.advance();
         let class_name = match &class_token.token_type {
             TokenType::Ident(s) => s.clone(),
-            _ => return Err(format!("Expected class name")),
+            _ => return Err("Expected class name".to_string()),
         };
         
         self.expect(TokenType::LBrace, "expected '{' before implement body")?;
@@ -608,14 +608,14 @@ impl Parser {
             let location = Location::new(self.peek().line, Rc::clone(&self.source));
             self.expect(TokenType::Semi, "end assignment")?;
 
-            match expr {
+            return match expr {
                 Expr::Ident(name) => {
-                    return Ok(Stmt::Assignment { name, value, location: Some(location) });
+                    Ok(Stmt::Assignment { name, value, location: Some(location) })
                 }
                 Expr::PropertyAccess { object, property } => {
-                    return Ok(Stmt::AssignmentField { object, field: property, value, location: Some(location) });
+                    Ok(Stmt::AssignmentField { object, field: property, value, location: Some(location) })
                 }
-                _ => return Err(format!("Invalid assignment target")),
+                _ => Err("Invalid assignment target".to_string()),
             }
         }
 
@@ -770,7 +770,7 @@ impl Parser {
                 self.advance();
                 Ok(MatchPattern::Ident(s))
             }
-            _ => Err(format!("Expected match pattern")),
+            _ => Err("Expected match pattern".to_string()),
         }
     }
     
@@ -932,7 +932,7 @@ impl Parser {
                 let name_token = self.advance();
                 let name = match &name_token.token_type {
                     TokenType::Ident(s) => s.clone(),
-                    _ => return Err(format!("Expected method/property name")),
+                    _ => return Err("Expected method/property name".to_string()),
                 };
 
                 if self.matches(TokenType::LParen) {
@@ -966,7 +966,7 @@ impl Parser {
                                 _ => {
                                     // Not a field name, this isn't a class literal
                                     // This is an error - we already consumed the LBrace
-                                    return Err(format!("Expected field name in class literal"));
+                                    return Err("Expected field name in class literal".to_string());
                                 }
                             };
                             
@@ -1080,14 +1080,14 @@ impl Parser {
                             elements.push(self.expression()?);
                         }
                         self.expect(TokenType::RParen, "expected ')' after tuple")?;
-                        return Ok(Expr::TupleLiteral(elements));
+                        Ok(Expr::TupleLiteral(elements))
                     } else {
                         self.expect(TokenType::RParen, "expected ')' after expression")?;
-                        return Ok(elements.remove(0));
+                        Ok(elements.remove(0))
                     }
                 } else {
                     self.expect(TokenType::RParen, "expected ')' after expression")?;
-                    return Err("Empty parentheses are not valid".to_string());
+                    Err("Empty parentheses are not valid".to_string())
                 }
             }
             _ => Err(format!("Expected expression, got {:?}", token.token_type)),

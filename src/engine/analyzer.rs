@@ -491,7 +491,7 @@ impl ScopeAnalyzer {
                             }
                         }
                     }
-                } else if let Some(alias) = module.split('.').last() {
+                } else if let Some(alias) = module.split('.').next_back() {
                     // import std.module or import std.module as alias
                     self.define_var(alias, TypeInfo::Unknown);
                 }
