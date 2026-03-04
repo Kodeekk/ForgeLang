@@ -3,4 +3,19 @@ name = "ForgeLang"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "forgelang"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fl"
+path = "src/bin/main.rs"
+
+[[bin]]
+name = "maul"
+path = "src/bin/maul/main.rs"
+
 [dependencies]
+clap = { version = "4.4", features = ["derive"] }
+serde_yaml = "0.9"
+serde = { version = "1.0", features = ["derive"] }

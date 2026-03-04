@@ -1,33 +1,39 @@
-mod lexer;
-mod parser;
-mod ast;
-mod runtime;
-mod interpreter;
-mod error;
-mod analyzer;
-
 use std::fs;
 use std::env;
 use std::process;
 use std::rc::Rc;
 
-use error::{ErrorReport, CompileError, codes};
+use forgelang::engine::{ErrorReport, CompileError, codes, Lexer, Parser, Interpreter, analyze};
+use forgelang::engine::runtime::Value;
+use forgelang::cli::style;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 2 {
-        eprintln!("Usage: {} <input.fl>", args[0]);
-        process::exit(1);
-    }
+    // Check for --check flag
+    let check_only = args.iter().any(|a| a == "--check");
+
+    // Find the input file (skip flags and args[0] which is the binary path)
+    let input_file = args.iter()
+        .skip(1)  // Skip args[0] (binary path)
+        .find(|a| !a.starts_with('-'))
+        .map(|s| s.as_str());
+
+    let input_file = match input_file {
+        Some(f) => f,
+        None => {
+            eprintln!("Usage: {} [--check] <input.fl>", args[0]);
+            process::exit(1);
+        }
+    };
 
     // Read source file
-    let source = match fs::read_to_string(&args[1]) {
+    let source = match fs::read_to_string(input_file) {
         Ok(content) => content,
         Err(e) => {
-            eprintln!("{}: Cannot read file '{}'", 
+            eprintln!("{}: Cannot read file '{}'",
                 if e.kind() == std::io::ErrorKind::NotFound { "error" } else { "error" },
-                args[1]);
+                input_file);
             eprintln!("  {}", e);
             process::exit(1);
         }
@@ -35,14 +41,21 @@ fn main() {
 
     let source_rc = Rc::new(source.clone());
 
-    println!("{} {} '{}'", 
-        style::cyan("Checking"),
-        style::blue("ForgeLang"),
-        args[1]);
+    if check_only {
+        println!("{} {} '{}'",
+            style::cyan("Checking"),
+            style::blue("ForgeLang"),
+            input_file);
+    } else {
+        println!("{} {} '{}'",
+            style::cyan("Running"),
+            style::blue("ForgeLang"),
+            input_file);
+    }
     println!();
 
     // Phase 1: Lexing
-    let mut lexer = lexer::Lexer::new(&source);
+    let mut lexer = Lexer::new(&source);
     let tokens = match lexer.tokenize() {
         Ok(tokens) => tokens,
         Err(errors) => {
@@ -62,18 +75,17 @@ fn main() {
     let mut all_warnings = lexer_errors.warnings().to_vec();
 
     // Phase 2: Parsing
-    let mut parser = parser::Parser::new(tokens, Rc::clone(&source_rc));
+    let mut parser = Parser::new(tokens, Rc::clone(&source_rc));
     let program = match parser.parse() {
         Ok(program) => program,
         Err(errors) => {
-            // Collect parser errors
             for err in errors.errors() {
                 all_errors.push(err.clone());
             }
             for warn in errors.warnings() {
                 all_warnings.push(warn.clone());
             }
-            
+
             let report = ErrorReport {
                 errors: all_errors,
                 warnings: all_warnings,
@@ -94,7 +106,7 @@ fn main() {
     }
 
     // Phase 3: Semantic Analysis
-    match analyzer::analyze(&program, Rc::clone(&source_rc)) {
+    match analyze(&program, Rc::clone(&source_rc)) {
         Ok(()) => {}
         Err(report) => {
             for err in report.errors {
@@ -114,19 +126,32 @@ fn main() {
             source: Some(source_rc.clone()),
         };
         eprintln!("{}", report.display());
-        
+
         if !all_errors.is_empty() {
             process::exit(1);
         }
     }
 
-    // Phase 4: Interpretation (only if no errors)
-    let mut interpreter = interpreter::Interpreter::new();
+    // If check-only mode, stop here
+    if check_only {
+        if all_errors.is_empty() {
+            println!(
+                "{} {} in {}",
+                style::green("Finished"),
+                style::blue("check"),
+                style::bold("0.0s")
+            );
+        }
+        process::exit(0);
+    }
+
+    // Phase 4: Interpretation (only if no errors and not check-only)
+    let mut interpreter = Interpreter::new();
     match interpreter.interpret(&program) {
         Ok(_) => {
             // Call main function if it exists
             if let Ok(main_val) = interpreter.env.get("main") {
-                if let runtime::Value::Function(main_fn) = main_val {
+                if let Value::Function(main_fn) = main_val {
                     match interpreter.call_function(&main_fn, &[], None) {
                         Ok(_) => {}
                         Err(e) => {
@@ -159,62 +184,5 @@ fn main() {
                 process::exit(1);
             }
         }
-    }
-}
-
-// Simple ANSI color helpers
-mod style {
-    pub fn cyan(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[36m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    pub fn blue(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[34m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    pub fn green(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[32m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    pub fn yellow(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[33m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    pub fn red(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[31m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    pub fn bold(s: &str) -> String {
-        if supports_color() {
-            format!("\x1b[1m{}\x1b[0m", s)
-        } else {
-            s.to_string()
-        }
-    }
-    
-    fn supports_color() -> bool {
-        std::env::var("NO_COLOR").is_err() && 
-        (std::env::var("COLORTERM").is_ok() || 
-         std::env::var("TERM").map_or(false, |t| t != "dumb"))
     }
 }
