@@ -1,14 +1,11 @@
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process;
-use std::rc::Rc;
+use std::path::PathBuf;
+use std::process::{self, Command};
 
 use clap::{Parser as ClapParser, Subcommand};
 use serde::{Deserialize, Serialize};
 
-use forgelang::engine::{ErrorReport, CompileError, codes, Lexer, Parser, Interpreter, analyze};
-use forgelang::engine::runtime::Value;
 use forgelang::cli::{style, setup_stdlib_path};
 
 /// Maul - The ForgeLang package manager (NOT a build tool - ForgeLang is interpreted!)
@@ -210,15 +207,23 @@ fn cmd_run(args: Vec<String>) {
     );
     println!();
 
-    match run_file(&entry_path) {
-        Ok(_) => {}
-        Err(_) => {
-            process::exit(1);
-        }
+    // Get the path to the fl binary (same directory as maul)
+    let fl_path = get_fl_binary_path();
+    
+    // Run the file using fl
+    let mut cmd = Command::new(&fl_path);
+    cmd.arg(&entry_path);
+    
+    // Pass through any additional arguments
+    for arg in &args {
+        cmd.arg(arg);
     }
 
-    // Suppress unused variable warning for now
-    let _ = args;
+    let status = cmd.status().expect("Failed to run fl");
+    
+    if !status.success() {
+        process::exit(status.code().unwrap_or(1));
+    }
 }
 
 fn cmd_check() {
@@ -245,19 +250,25 @@ fn cmd_check() {
     );
     println!();
 
-    match check_file(&entry_path) {
-        Ok(_) => {
-            println!(
-                "{} {} in {}",
-                style::green("Finished"),
-                style::blue("check"),
-                style::bold("0.0s")
-            );
-        }
-        Err(_) => {
-            process::exit(1);
-        }
+    // Get the path to the fl binary (same directory as maul)
+    let fl_path = get_fl_binary_path();
+    
+    // Run fl to check the file (fl already does full check + run)
+    let status = Command::new(&fl_path)
+        .arg(&entry_path)
+        .status()
+        .expect("Failed to run fl");
+    
+    if !status.success() {
+        process::exit(status.code().unwrap_or(1));
     }
+    
+    println!(
+        "{} {} in {}",
+        style::green("Finished"),
+        style::blue("check"),
+        style::bold("0.0s")
+    );
 }
 
 fn cmd_clean() {
@@ -276,7 +287,7 @@ fn cmd_clean() {
 }
 
 // ============================================================================
-// Compiler Integration
+// Helpers
 // ============================================================================
 
 fn load_manifest() -> Manifest {
@@ -297,188 +308,19 @@ fn load_manifest() -> Manifest {
     serde_yaml::from_str(&content).expect("Failed to parse maul.yaml")
 }
 
-fn compile_file(path: &Path) -> Result<(), ()> {
-    let source = fs::read_to_string(path).expect("Failed to read source file");
-    let source_rc = Rc::new(source.clone());
-
-    // Phase 1: Lexing
-    let mut lexer = Lexer::new(&source);
-    let tokens = match lexer.tokenize() {
-        Ok(tokens) => tokens,
-        Err(errors) => {
-            let report = ErrorReport {
-                errors: errors.errors().to_vec(),
-                warnings: errors.warnings().to_vec(),
-                source: Some(Rc::clone(&source_rc)),
-            };
-            eprintln!("{}", report.display());
-            return Err(());
-        }
-    };
-
-    let lexer_errors = lexer.into_errors();
-    let mut all_errors = lexer_errors.errors().to_vec();
-    let mut all_warnings = lexer_errors.warnings().to_vec();
-
-    // Phase 2: Parsing
-    let mut parser = Parser::new(tokens, Rc::clone(&source_rc));
-    let program = match parser.parse() {
-        Ok(program) => program,
-        Err(errors) => {
-            for err in errors.errors() {
-                all_errors.push(err.clone());
-            }
-            for warn in errors.warnings() {
-                all_warnings.push(warn.clone());
-            }
-
-            let report = ErrorReport {
-                errors: all_errors,
-                warnings: all_warnings,
-                source: Some(source_rc),
-            };
-            eprintln!("{}", report.display());
-            return Err(());
-        }
-    };
-
-    // Phase 3: Semantic Analysis
-    match analyze(&program, Rc::clone(&source_rc)) {
-        Ok(()) => {}
-        Err(report) => {
-            for err in report.errors {
-                all_errors.push(err);
-            }
-            for warn in report.warnings {
-                all_warnings.push(warn);
+/// Get the path to the fl binary
+/// Looks in the same directory as the maul binary
+fn get_fl_binary_path() -> PathBuf {
+    // Try to get the directory where maul is located
+    if let Ok(exe) = env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            let fl_path = parent.join("fl");
+            if fl_path.exists() {
+                return fl_path;
             }
         }
     }
-
-    if !all_errors.is_empty() {
-        let report = ErrorReport {
-            errors: all_errors,
-            warnings: all_warnings,
-            source: Some(source_rc),
-        };
-        eprintln!("{}", report.display());
-        return Err(());
-    }
-
-    Ok(())
-}
-
-fn check_file(path: &Path) -> Result<(), ()> {
-    compile_file(path)
-}
-
-fn run_file(path: &Path) -> Result<(), ()> {
-    let source = fs::read_to_string(path).expect("Failed to read source file");
-    let source_rc = Rc::new(source.clone());
-
-    // Phase 1: Lexing
-    let mut lexer = Lexer::new(&source);
-    let tokens = match lexer.tokenize() {
-        Ok(tokens) => tokens,
-        Err(errors) => {
-            let report = ErrorReport {
-                errors: errors.errors().to_vec(),
-                warnings: errors.warnings().to_vec(),
-                source: Some(Rc::clone(&source_rc)),
-            };
-            eprintln!("{}", report.display());
-            return Err(());
-        }
-    };
-
-    let mut all_errors = Vec::new();
-    let mut all_warnings = Vec::new();
-
-    // Phase 2: Parsing
-    let mut parser = Parser::new(tokens, Rc::clone(&source_rc));
-    let program = match parser.parse() {
-        Ok(program) => program,
-        Err(errors) => {
-            for err in errors.errors() {
-                all_errors.push(err.clone());
-            }
-            for warn in errors.warnings() {
-                all_warnings.push(warn.clone());
-            }
-
-            let report = ErrorReport {
-                errors: all_errors,
-                warnings: all_warnings,
-                source: Some(Rc::clone(&source_rc)),
-            };
-            eprintln!("{}", report.display());
-            return Err(());
-        }
-    };
-
-    // Phase 3: Semantic Analysis
-    match analyze(&program, Rc::clone(&source_rc)) {
-        Ok(()) => {}
-        Err(report) => {
-            for err in report.errors {
-                all_errors.push(err);
-            }
-            for warn in report.warnings {
-                all_warnings.push(warn);
-            }
-        }
-    }
-
-    if !all_errors.is_empty() {
-        let report = ErrorReport {
-            errors: all_errors,
-            warnings: all_warnings,
-            source: Some(Rc::clone(&source_rc)),
-        };
-        eprintln!("{}", report.display());
-        return Err(());
-    }
-
-    // Phase 4: Interpretation
-    let mut interpreter = Interpreter::new();
-    match interpreter.interpret(&program) {
-        Ok(_) => {
-            // Call main function if it exists
-            if let Ok(main_val) = interpreter.env.get("main") {
-                if let Value::Function(main_fn) = main_val {
-                    match interpreter.call_function(&main_fn, &[], None) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            if !e.starts_with("__RETURN") && !e.starts_with("RETURN") {
-                                let report = ErrorReport {
-                                    errors: vec![
-                                        CompileError::runtime_error(codes::INVALID_OPERATION, e)
-                                    ],
-                                    warnings: vec![],
-                                    source: Some(source_rc),
-                                };
-                                eprintln!("{}", report.display());
-                                return Err(());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            if !e.starts_with("__RETURN") && !e.starts_with("RETURN") {
-                let report = ErrorReport {
-                    errors: vec![
-                        CompileError::runtime_error(codes::INVALID_OPERATION, e)
-                    ],
-                    warnings: vec![],
-                    source: Some(source_rc),
-                };
-                eprintln!("{}", report.display());
-                return Err(());
-            }
-        }
-    }
-
-    Ok(())
+    
+    // Fallback: assume fl is in PATH
+    PathBuf::from("fl")
 }

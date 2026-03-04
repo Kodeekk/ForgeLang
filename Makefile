@@ -21,8 +21,8 @@ install: build
 	@ln -s $(CURDIR)/stdlib $(STDLIBDIR)
 	@echo "Created symlink: $(STDLIBDIR) -> $(CURDIR)/stdlib"
 	@# Install binaries
-	@cp target/release/fl $(BINDIR)/fl
-	@cp target/release/maul $(BINDIR)/maul
+	sudo cp target/release/fl $(BINDIR)/fl
+	sudo cp target/release/maul $(BINDIR)/maul
 	@echo "Installed binaries to $(BINDIR)"
 	@echo ""
 	@echo "ForgeLang installed successfully!"
@@ -34,8 +34,8 @@ install: build
 
 uninstall:
 	@echo "Uninstalling ForgeLang..."
-	@rm -f $(BINDIR)/fl
-	@rm -f $(BINDIR)/maul
+	sudo rm -f $(BINDIR)/fl
+	sudo rm -f $(BINDIR)/maul
 	@rm -rf $(HOME)/.forgelang
 	@echo "ForgeLang uninstalled"
 
