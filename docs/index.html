@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ForgeLang Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-primary: #006c4c;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #89f8c7;
+            --md-sys-color-on-primary-container: #002113;
+            --md-sys-color-secondary: #4f6357;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-background: #fdfcf5;
+            --md-sys-color-on-background: #1a1c19;
+            --md-sys-color-surface: #fdfcf5;
+            --md-sys-color-on-surface: #1a1c19;
+            --md-sys-color-surface-variant: #e0e4dc;
+            --md-sys-color-on-surface-variant: #444842;
+            --md-sys-color-outline: #747972;
+            
+            --font-family-base: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-family-mono: 'JetBrains Mono', monospace;
+            
+            --shadow-1: 0 1px 2px rgba(0,0,0,0.1), 0 1px 3px 1px rgba(0,0,0,0.05);
+            --shadow-2: 0 4px 8px 3px rgba(0,0,0,0.1);
+            
+            --border-radius-md: 12px;
+            --border-radius-lg: 16px;
+        }
+
+        [data-theme="dark"] {
+            --md-sys-color-primary: #6cdbb0;
+            --md-sys-color-on-primary: #003825;
+            --md-sys-color-primary-container: #005238;
+            --md-sys-color-on-primary-container: #89f8c7;
+            --md-sys-color-background: #1a1c19;
+            --md-sys-color-on-background: #e2e3de;
+            --md-sys-color-surface: #1a1c19;
+            --md-sys-color-on-surface: #e2e3de;
+            --md-sys-color-surface-variant: #444842;
+            --md-sys-color-on-surface-variant: #c4c8c0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--md-sys-color-surface);
+            box-shadow: var(--shadow-1);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+        }
+
+        .header__logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            text-decoration: none;
+        }
+
+        .header__nav {
+            display: flex;
+            gap: 8px;
+            margin-left: 48px;
+        }
+
+        .header__nav a {
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: var(--md-sys-color-on-surface);
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.15s;
+        }
+
+        .header__nav a:hover,
+        .header__nav a.active {
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        .header__actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--md-sys-color-on-surface);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s;
+        }
+
+        .icon-button:hover {
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        /* Layout */
+        .layout {
+            display: flex;
+            margin-top: 64px;
+            min-height: calc(100vh - 64px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            position: fixed;
+            left: 0;
+            top: 64px;
+            bottom: 0;
+            overflow-y: auto;
+            padding: 24px 0;
+            border-right: 1px solid var(--md-sys-color-surface-variant);
+        }
+
+        .sidebar__section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar__title {
+            padding: 8px 24px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .sidebar__link {
+            display: block;
+            padding: 10px 24px;
+            color: var(--md-sys-color-on-surface);
+            text-decoration: none;
+            transition: background-color 0.15s;
+        }
+
+        .sidebar__link:hover {
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        .sidebar__link.active {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 500;
+        }
+
+        .sidebar__submenu {
+            padding-left: 16px;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 280px;
+            flex: 1;
+            padding: 48px;
+            max-width: 1200px;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 24px;
+        }
+
+        .hero__title {
+            font-size: 4rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #3b6472 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .hero__subtitle {
+            font-size: 1.5rem;
+            color: var(--md-sys-color-on-surface-variant);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .hero__actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 28px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.15s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .button--primary {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .button--primary:hover {
+            background-color: #005a3f;
+            box-shadow: var(--shadow-2);
+        }
+
+        .button--secondary {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .button--secondary:hover {
+            background-color: #70e0b0;
+        }
+
+        .button--outlined {
+            background-color: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 48px 0;
+        }
+
+        .card {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-surface-variant);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            transition: all 0.15s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-2);
+            transform: translateY(-2px);
+        }
+
+        .card__icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .card__title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .card__description {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Content */
+        .content {
+            max-width: 800px;
+        }
+
+        .content h1 {
+            font-size: 3.5rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        .content h2 {
+            font-size: 2.25rem;
+            font-weight: 500;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--md-sys-color-surface-variant);
+        }
+
+        .content h3 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+        }
+
+        .content ul, .content ol {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+
+        .content li {
+            margin-bottom: 8px;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: var(--border-radius-md);
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: var(--font-family-mono);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: var(--font-family-mono);
+            background: var(--md-sys-color-surface-variant);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--md-sys-color-surface-variant);
+        }
+
+        th {
+            background: var(--md-sys-color-surface-variant);
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--md-sys-color-surface-variant);
+            padding: 48px 24px;
+            margin-top: 80px;
+        }
+
+        .footer__content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 32px;
+        }
+
+        .footer__title {
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 16px;
+        }
+
+        .footer__links a {
+            display: block;
+            color: var(--md-sys-color-on-surface);
+            text-decoration: none;
+            margin-bottom: 8px;
+            transition: color 0.15s;
+        }
+
+        .footer__links a:hover {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 24px;
+            }
+
+            .hero__title {
+                font-size: 2.5rem;
+            }
+
+            .hero__subtitle {
+                font-size: 1.125rem;
+            }
+
+            .header__nav {
+                display: none;
+            }
+        }
+
+        /* Syntax highlighting */
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .number { color: #b5cea8; }
+        .comment { color: #6a9955; }
+        .function { color: #dcdcaa; }
+        .type { color: #4ec9b0; }
+        .variable { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="header__logo">
+            <svg width="32" height="32" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30 120 L170 120 L170 140 L30 140 Z" fill="var(--md-sys-color-primary)"/>
+                <path d="M40 100 L160 100 L160 120 L40 120 Z" fill="var(--md-sys-color-primary)"/>
+                <path d="M50 80 L150 80 L150 100 L50 100 Z" fill="var(--md-sys-color-primary)"/>
+                <rect x="85" y="20" width="30" height="70" rx="4" fill="var(--md-sys-color-primary)"/>
+                <rect x="70" y="30" width="60" height="25" rx="4" fill="var(--md-sys-color-primary)"/>
+            </svg>
+            ForgeLang
+        </a>
+        <nav class="header__nav">
+            <a href="#docs" class="active">Docs</a>
+            <a href="#api">API</a>
+            <a href="#examples">Examples</a>
+        </nav>
+        <div class="header__actions">
+            <button class="icon-button" onclick="toggleTheme()" aria-label="Toggle theme">
+                <span class="material-icons">dark_mode</span>
+            </button>
+            <a href="https://github.com/forgelang/forgelang" class="icon-button" aria-label="GitHub">
+                <span class="material-icons">code</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar__section">
+                <div class="sidebar__title">Introduction</div>
+                <a href="#intro" class="sidebar__link active">Welcome</a>
+                <a href="#installation" class="sidebar__link">Installation</a>
+                <a href="#quick-start" class="sidebar__link">Quick Start</a>
+                <a href="#why-forgelang" class="sidebar__link">Why ForgeLang?</a>
+            </div>
+            <div class="sidebar__section">
+                <div class="sidebar__title">Language Guide</div>
+                <a href="#syntax" class="sidebar__link">Syntax Basics</a>
+                <a href="#types" class="sidebar__link">Types</a>
+                <a href="#variables" class="sidebar__link">Variables</a>
+                <a href="#operators" class="sidebar__link">Operators</a>
+                <a href="#control-flow" class="sidebar__link">Control Flow</a>
+                <a href="#functions" class="sidebar__link">Functions</a>
+                <a href="#modules" class="sidebar__link">Modules</a>
+            </div>
+            <div class="sidebar__section">
+                <div class="sidebar__title">Advanced</div>
+                <a href="#generics" class="sidebar__link">Generics</a>
+                <a href="#enums" class="sidebar__link">Enums</a>
+                <a href="#interfaces" class="sidebar__link">Interfaces</a>
+                <a href="#pattern-matching" class="sidebar__link">Pattern Matching</a>
+            </div>
+            <div class="sidebar__section">
+                <div class="sidebar__title">Standard Library</div>
+                <a href="#io" class="sidebar__link">std.io</a>
+                <a href="#math" class="sidebar__link">std.math</a>
+                <a href="#list" class="sidebar__link">std.list</a>
+                <a href="#str" class="sidebar__link">std.str</a>
+                <a href="#fs" class="sidebar__link">std.fs</a>
+                <a href="#time" class="sidebar__link">std.time</a>
+                <a href="#env" class="sidebar__link">std.env</a>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="hero">
+                <h1 class="hero__title">ForgeLang</h1>
+                <p class="hero__subtitle">
+                    A dynamically-typed interpreted language with focus on simplicity and expressiveness
+                </p>
+                <div class="hero__actions">
+                    <a href="#quick-start" class="button button--primary">
+                        <span class="material-icons">rocket_launch</span>
+                        Get Started
+                    </a>
+                    <a href="#installation" class="button button--outlined">
+                        <span class="material-icons">download</span>
+                        Install
+                    </a>
+                </div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="card">
+                    <div class="card__icon">🦺</div>
+                    <h3 class="card__title">Type Safety</h3>
+                    <p class="card__description">Dynamic typing with optional type annotations for flexibility and safety.</p>
+                </div>
+                <div class="card">
+                    <div class="card__icon">🧬</div>
+                    <h3 class="card__title">Generics</h3>
+                    <p class="card__description">Powerful generic types for reusable, type-safe code.</p>
+                </div>
+                <div class="card">
+                    <div class="card__icon">🎯</div>
+                    <h3 class="card__title">Pattern Matching</h3>
+                    <p class="card__description">Exhaustive pattern matching for clear, bug-free code.</p>
+                </div>
+                <div class="card">
+                    <div class="card__icon">📦</div>
+                    <h3 class="card__title">Rich Stdlib</h3>
+                    <p class="card__description">Comprehensive standard library with I/O, collections, math, and more.</p>
+                </div>
+                <div class="card">
+                    <div class="card__icon">🏗️</div>
+                    <h3 class="card__title">Classes & Interfaces</h3>
+                    <p class="card__description">Object-oriented features with clean syntax.</p>
+                </div>
+                <div class="card">
+                    <div class="card__icon">⚡</div>
+                    <h3 class="card__title">Fast Development</h3>
+                    <p class="card__description">Quick iteration with interpreted runtime.</p>
+                </div>
+            </div>
+
+            <div class="content">
+                <h2>Quick Example</h2>
+                <pre><code><span class="keyword">module</span> hello;
+
+<span class="keyword">import</span> [println] <span class="keyword">from</span> std.io;
+<span class="keyword">import</span> std.math;
+
+<span class="comment">// Define an enum with associated data</span>
+<span class="keyword">enum</span> Shape {
+    Circle(radius: f64),
+    Rect(width: f64, height: f64)
+}
+
+<span class="comment">// Pattern matching</span>
+<span class="keyword">fn</span> area(s: Shape) -> f64 {
+    <span class="keyword">return match</span> s {
+        Shape.Circle(r) => math.PI * r * r,
+        Shape.Rect(w, h) => w * h
+    };
+}
+
+<span class="keyword">fn</span> main() -> int {
+    <span class="keyword">var</span> shapes = [
+        Shape.Circle(5.0),
+        Shape.Rect(4.0, 6.0)
+    ];
+    
+    <span class="keyword">for</span> shape <span class="keyword">in</span> shapes {
+        println(<span class="string">"Area: {area(shape)}"</span>);
+    }
+    
+    <span class="keyword">return</span> 0;
+}</code></pre>
+            </div>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer__content">
+            <div>
+                <div class="footer__title">Docs</div>
+                <div class="footer__links">
+                    <a href="#intro">Getting Started</a>
+                    <a href="#language-guide">Language Guide</a>
+                    <a href="#stdlib">Standard Library</a>
+                </div>
+            </div>
+            <div>
+                <div class="footer__title">Community</div>
+                <div class="footer__links">
+                    <a href="https://github.com/forgelang/forgelang">GitHub</a>
+                    <a href="https://discord.gg/forgelang">Discord</a>
+                    <a href="https://twitter.com/forgelang">Twitter</a>
+                </div>
+            </div>
+            <div>
+                <div class="footer__title">More</div>
+                <div class="footer__links">
+                    <a href="#examples">Examples</a>
+                    <a href="#showcase">Showcase</a>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 32px; color: var(--md-sys-color-on-surface-variant);">
+            Copyright © 2026 ForgeLang. Built with Material Design.
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
