@@ -58,6 +58,11 @@ impl Interpreter {
         let _ = self.load_stdlib_module("int");
         let _ = self.load_stdlib_module("float");
         let _ = self.load_stdlib_module("bool");
+        let _ = self.load_stdlib_module("math");
+        let _ = self.load_stdlib_module("proc");
+        let _ = self.load_stdlib_module("fs");
+        let _ = self.load_stdlib_module("env");
+        let _ = self.load_stdlib_module("list");
         let mut result = Value::Void;
 
         for stmt in &program.statements {
@@ -206,6 +211,7 @@ impl Interpreter {
         values.insert("fs".to_string(), Value::Module("fs".to_string()));
         values.insert("env".to_string(), Value::Module("env".to_string()));
         values.insert("time".to_string(), Value::Module("time".to_string()));
+        values.insert("proc".to_string(), Value::Module("proc".to_string()));
 
         values.insert("builtin_fs_read".to_string(), Value::NativeFunction(|args| {
             if args.is_empty() {
@@ -316,6 +322,20 @@ impl Interpreter {
             }
         }));
 
+        values.insert("builtin_fs_size".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("size() requires 1 argument".to_string());
+            }
+            if let Value::Str(path) = &args[0] {
+                match fs::metadata(path) {
+                    Ok(meta) => Ok(Value::Int(meta.len() as i64)),
+                    Err(e) => Err(format!("Failed to get file size: {}", e)),
+                }
+            } else {
+                Err("size() requires string argument".to_string())
+            }
+        }));
+
         values.insert("builtin_env_cwd".to_string(), Value::NativeFunction(|_args| {
             match std::env::current_dir() {
                 Ok(path) => Ok(Value::Str(path.to_string_lossy().to_string())),
@@ -415,6 +435,47 @@ impl Interpreter {
                 Ok(Value::Void)
             } else {
                 Err("sleep() requires integer argument".to_string())
+            }
+        }));
+
+        // Process execution builtins
+        use std::process::Command;
+        values.insert("builtin_proc_exec".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("exec() requires 1 argument".to_string());
+            }
+            if let Value::Str(cmd) = &args[0] {
+                let output = Command::new("sh")
+                    .arg("-c")
+                    .arg(cmd)
+                    .status();
+                match output {
+                    Ok(status) => Ok(Value::Int(status.code().unwrap_or(-1) as i64)),
+                    Err(e) => Err(format!("Failed to execute command: {}", e)),
+                }
+            } else {
+                Err("exec() requires string argument".to_string())
+            }
+        }));
+
+        values.insert("builtin_proc_capture".to_string(), Value::NativeFunction(|args| {
+            if args.is_empty() {
+                return Err("capture() requires 1 argument".to_string());
+            }
+            if let Value::Str(cmd) = &args[0] {
+                let output = Command::new("sh")
+                    .arg("-c")
+                    .arg(cmd)
+                    .output();
+                match output {
+                    Ok(out) => {
+                        let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                        Ok(Value::Str(stdout.trim().to_string()))
+                    }
+                    Err(e) => Err(format!("Failed to execute command: {}", e)),
+                }
+            } else {
+                Err("capture() requires string argument".to_string())
             }
         }));
 
@@ -1355,6 +1416,17 @@ impl Interpreter {
                 } else {
                     obj_val?
                 };
+
+                // Check for static methods on classes even when evaluation succeeded
+                if let Expr::Ident(class_name) = object.as_ref() {
+                    if self.classes.contains_key(class_name) {
+                        if let Some(class_def) = self.classes.get(class_name).cloned() {
+                            if let Some(func) = class_def.static_methods.get(method) {
+                                return self.call_function(func, &arg_values, None);
+                            }
+                        }
+                    }
+                }
 
                 match obj_val {
                     Value::Object(obj_rc) => {

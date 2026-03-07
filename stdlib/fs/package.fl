@@ -333,3 +333,32 @@ fn create_dir(path) -> void {
 fn read_dir(path) {
     return builtin_fs_read_dir(path);
 }
+
+/// Get the size of a file in bytes.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file
+///
+/// # Returns
+///
+/// The size of the file in bytes.
+///
+/// # Errors
+///
+/// May fail if the file doesn't exist or cannot be read.
+///
+/// # Examples
+///
+/// ```forge
+/// import [size] from std.fs;
+/// var file_size = size("hello.txt");
+/// println("File size: {file_size} bytes");
+/// ```
+///
+/// # See Also
+///
+/// * `exists()` - check if a file exists
+fn size(path) -> int {
+    return builtin_fs_size(path);
+}
