@@ -1873,6 +1873,9 @@ impl Interpreter {
                     _ => Err(format!("'{}' is not a function in module", method_name)),
                 }
             }
+            Value::List(list) => {
+                self.call_list_method(&list, method_name, args)
+            }
             _ => Err(format!("Cannot call method '{}' on {:?}", method_name, obj_val)),
         }
     }
