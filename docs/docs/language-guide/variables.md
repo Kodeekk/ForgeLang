@@ -111,7 +111,7 @@ const MAX_RETRIES = 3;
 const API_VERSION = "v2";
 
 // Private convention (underscore prefix)
-var _internal_cache = map.new();
+var _internal_value = 0;
 fn _helper_function() { ... }
 ```
 
@@ -147,7 +147,7 @@ module my_app;
 
 // Global mutable state
 var total_requests: int = 0;
-var config: map<str, any> = map.new();
+var config_name: str = "default";
 
 // Global constants
 const APP_NAME: str = "MyApp";
@@ -157,8 +157,8 @@ fn increment_requests() -> void {
     total_requests = total_requests + 1;
 }
 
-fn get_config(key: str) -> any {
-    return config.get(key);
+fn get_config_name() -> str {
+    return config_name;
 }
 ```
 
@@ -182,24 +182,14 @@ fn example() -> void {
 Initialize variables when needed:
 
 ```forge
-// Declare without initializing
-var cache: map<str, any>;
+// Use Option for lazy initialization
+var cache: Option<list<str>> = Option.None;
 
-fn get_cache() -> map<str, any> {
-    if cache == null {
-        cache = map.new();
-    }
-    return cache;
-}
-
-// Or use Option
-var cache: Option<map<str, any>> = Option.None;
-
-fn get_cache() -> map<str, any> {
+fn get_cache() -> list<str> {
     match cache {
         Option.Some(c) => c,
         Option.None => {
-            var new_cache = map.new();
+            var new_cache: list<str> = [];
             cache = Option.Some(new_cache);
             new_cache
         }
@@ -222,7 +212,7 @@ var ratio: f64 = 0.75;
 
 // Required for empty collections
 var items: list<int> = [];
-var mapping: map<str, int> = map.new();
+var config = { enabled: true };
 
 // Required for function signatures
 fn add(a: int, b: int) -> int { ... }

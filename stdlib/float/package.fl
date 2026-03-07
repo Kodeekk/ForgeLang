@@ -4,76 +4,312 @@
 // ║                  Float Class and Methods                          ║
 // ╚══════════════════════════════════════════════════════════════════╗
 
-/// Float class - wrapper for float primitive
+/// Float class - wrapper for float primitive.
+///
+/// Provides methods for floating-point operations, conversions, and checks.
+///
+/// # Examples
+///
+/// ```forge
+/// import std.float;
+/// var f = float.new(3.14);
+/// println(f.to_str());        // "3.14"
+/// println(f.floor());         // 3.0
+/// println(f.is_positive());   // true
+/// ```
 class float {
     var _value: float;
 
-    /// Constructor - converts value to float
+    /// Constructor - converts value to float.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Any value to convert to float
+    ///
+    /// # Returns
+    ///
+    /// A new float wrapper instance.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// var f1 = float.new(3.14);
+    /// var f2 = float.new(42);
+    /// ```
     fn new(value) {
         return builtin_float(value);
     }
 
-    /// Convert to string
+    /// Convert the float to a string.
+    ///
+    /// # Returns
+    ///
+    /// The string representation of the float.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.14).to_str();   // "3.14"
+    /// ```
     fn to_str(self) {
         return builtin_float_to_str(self._value);
     }
 
-    /// Convert to integer (truncates)
+    /// Convert the float to an integer.
+    ///
+    /// Truncates toward zero (drops the fractional part).
+    ///
+    /// # Returns
+    ///
+    /// The integer representation of the float.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.14).to_int();   // 3
+    /// float.new(-2.7).to_int();   // -2
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `floor()` - round down
+    /// * `ceil()` - round up
+    /// * `round()` - round to nearest
     fn to_int(self) {
         return builtin_float_to_int(self._value);
     }
 
-    /// Absolute value
+    /// Get the absolute value.
+    ///
+    /// # Returns
+    ///
+    /// The non-negative value of the float.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(-3.14).abs();   // 3.14
+    /// float.new(2.5).abs();     // 2.5
+    /// ```
     fn abs(self) {
         return builtin_float_abs(self._value);
     }
 
-    /// Floor (round down)
+    /// Round down to the nearest integer.
+    ///
+    /// # Returns
+    ///
+    /// The largest integer less than or equal to the float.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.7).floor();    // 3.0
+    /// float.new(-2.3).floor();   // -3.0
+    /// float.new(4.0).floor();    // 4.0
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `ceil()` - round up
+    /// * `round()` - round to nearest
     fn floor(self) {
         return builtin_float_floor(self._value);
     }
 
-    /// Ceiling (round up)
+    /// Round up to the nearest integer.
+    ///
+    /// # Returns
+    ///
+    /// The smallest integer greater than or equal to the float.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.2).ceil();    // 4.0
+    /// float.new(-2.7).ceil();   // -2.0
+    /// float.new(4.0).ceil();    // 4.0
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `floor()` - round down
+    /// * `round()` - round to nearest
     fn ceil(self) {
         return builtin_float_ceil(self._value);
     }
 
-    /// Round to nearest integer
+    /// Round to the nearest integer.
+    ///
+    /// # Returns
+    ///
+    /// The nearest integer to the float.
+    /// Rounds half away from zero.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.5).round();    // 4.0
+    /// float.new(3.4).round();    // 3.0
+    /// float.new(-2.6).round();   // -3.0
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `floor()` - round down
+    /// * `ceil()` - round up
     fn round(self) {
         return builtin_float_round(self._value);
     }
 
-    /// Get fractional part
+    /// Get the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// The fractional part of the float (value - floor(value)).
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.75).fract();   // 0.75
+    /// float.new(-2.3).fract();   // 0.7
+    /// ```
     fn fract(self) {
         return self._value - self.floor();
     }
 
-    /// Check if positive
+    /// Check if the float is positive.
+    ///
+    /// # Returns
+    ///
+    /// `true` if greater than 0.0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.14).is_positive();   // true
+    /// float.new(-2.5).is_positive();   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_negative()` - check if negative
+    /// * `is_zero()` - check if zero
     fn is_positive(self) {
         return self._value > 0.0;
     }
 
-    /// Check if negative
+    /// Check if the float is negative.
+    ///
+    /// # Returns
+    ///
+    /// `true` if less than 0.0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(-2.5).is_negative();   // true
+    /// float.new(3.14).is_negative();   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_positive()` - check if positive
+    /// * `is_zero()` - check if zero
     fn is_negative(self) {
         return self._value < 0.0;
     }
 
-    /// Check if zero
+    /// Check if the float is zero.
+    ///
+    /// # Returns
+    ///
+    /// `true` if equal to 0.0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(0.0).is_zero();    // true
+    /// float.new(0.001).is_zero();  // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_positive()` - check if positive
+    /// * `is_negative()` - check if negative
     fn is_zero(self) {
         return self._value == 0.0;
     }
 
-    /// Check if finite (not infinity or NaN)
+    /// Check if the float is finite.
+    ///
+    /// Returns `false` for infinity and NaN values.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the value is a finite number, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.14).is_finite();   // true
+    /// // float.new(infinity).is_finite();  // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_nan()` - check if NaN
     fn is_finite(self) {
         return builtin_float_is_finite(self._value);
     }
 
-    /// Check if NaN
+    /// Check if the float is NaN (Not a Number).
+    ///
+    /// # Returns
+    ///
+    /// `true` if the value is NaN, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(3.14).is_nan();    // false
+    /// // float.new(nan).is_nan();  // true
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_finite()` - check if finite
     fn is_nan(self) {
         return builtin_float_is_nan(self._value);
     }
 
-    /// Get sign (-1.0, 0.0, or 1.0)
+    /// Get the sign of the float.
+    ///
+    /// # Returns
+    ///
+    /// `-1.0` if negative, `0.0` if zero, `1.0` if positive.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.float;
+    /// float.new(-3.14).sign();   // -1.0
+    /// float.new(0.0).sign();     // 0.0
+    /// float.new(2.5).sign();     // 1.0
+    /// ```
     fn sign(self) {
         if self._value < 0.0 { return -1.0; }
         if self._value > 0.0 { return 1.0; }

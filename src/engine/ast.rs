@@ -32,7 +32,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeAnnotation {
     Int,
     Float,
@@ -41,8 +41,10 @@ pub enum TypeAnnotation {
     Void,
     List(Box<TypeAnnotation>),
     Class(String),
+    GenericClass(String, Vec<TypeAnnotation>),  // For generic classes like Comparable<T>
     Fn(Vec<TypeAnnotation>, Box<TypeAnnotation>),
     Tuple(Vec<TypeAnnotation>),
+    Self_,  // Self type in interfaces
 }
 
 impl fmt::Display for TypeAnnotation {
@@ -55,6 +57,10 @@ impl fmt::Display for TypeAnnotation {
             TypeAnnotation::Void => write!(f, "void"),
             TypeAnnotation::List(t) => write!(f, "list<{}>", t),
             TypeAnnotation::Class(name) => write!(f, "{}", name),
+            TypeAnnotation::GenericClass(name, args) => {
+                let args_str: Vec<String> = args.iter().map(|a| format!("{}", a)).collect();
+                write!(f, "{}<{}>", name, args_str.join(", "))
+            }
             TypeAnnotation::Fn(args, ret) => {
                 let args_str: Vec<String> = args.iter().map(|a| format!("{}", a)).collect();
                 write!(f, "fn({}) -> {}", args_str.join(", "), ret)
@@ -63,6 +69,7 @@ impl fmt::Display for TypeAnnotation {
                 let types_str: Vec<String> = types.iter().map(|t| format!("{}", t)).collect();
                 write!(f, "({})", types_str.join(", "))
             }
+            TypeAnnotation::Self_ => write!(f, "Self"),
         }
     }
 }
@@ -112,6 +119,7 @@ pub enum Expr {
         body: Vec<Stmt>,
     },
     ListLiteral(Vec<Expr>),
+    MapLiteral(Vec<(Expr, Expr)>),  // Key-value pairs
     ClassLiteral {
         class_name: String,
         fields: Vec<(String, Expr)>,
@@ -121,6 +129,10 @@ pub enum Expr {
     },
     Self_,
     TupleLiteral(Vec<Expr>),
+    Match {
+        expr: Box<Expr>,
+        arms: Vec<MatchArm>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -200,6 +212,7 @@ pub struct Method {
     pub return_type: Option<TypeAnnotation>,
     pub body: Vec<Stmt>,
     pub is_static: bool,
+    pub type_params: Vec<String>,  // Generic type parameters like <T, A>
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +224,16 @@ pub struct InterfaceMethod {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
+    Module {
+        path: String,
+        location: Option<Location>,
+    },
+    TypeAlias {
+        name: String,
+        type_params: Vec<String>,  // Generic type parameters
+        alias_type: TypeAnnotation,
+        location: Option<Location>,
+    },
     VarDecl {
         pattern: Pattern,
         var_type: Option<TypeAnnotation>,
@@ -225,6 +248,7 @@ pub enum Stmt {
     },
     FnDecl {
         name: String,
+        type_params: Vec<String>,  // Generic type parameters
         params: Vec<Param>,
         return_type: Option<TypeAnnotation>,
         body: Vec<Stmt>,
@@ -232,13 +256,15 @@ pub enum Stmt {
     },
     ClassDecl {
         name: String,
-        implements: Vec<String>,
+        type_params: Vec<String>,  // Generic type parameters
+        implements: Vec<TypeAnnotation>,  // Changed to TypeAnnotation to support GenericClass
         fields: Vec<Field>,
         methods: Vec<Method>,
         location: Option<Location>,
     },
     InterfaceDecl {
         name: String,
+        type_params: Vec<String>,  // Generic type parameters
         methods: Vec<InterfaceMethod>,
         location: Option<Location>,
     },
@@ -246,6 +272,12 @@ pub enum Stmt {
         interface_name: String,
         class_name: String,
         methods: Vec<Method>,
+        location: Option<Location>,
+    },
+    EnumDecl {
+        name: String,
+        type_params: Vec<String>,  // Generic type parameters
+        variants: Vec<EnumVariant>,
         location: Option<Location>,
     },
     ExprStmt(Expr),
@@ -285,6 +317,12 @@ pub enum Stmt {
         value: Expr,
         location: Option<Location>,
     },
+    AssignmentIndex {
+        object: Box<Expr>,
+        index: Box<Expr>,
+        value: Expr,
+        location: Option<Location>,
+    },
     Import {
         module: String,
         alias: Option<String>,
@@ -311,6 +349,10 @@ pub enum MatchPattern {
     Ident(String),
     Underscore,
     Tuple(Vec<MatchPattern>),
+    Variant {
+        name: String,  // e.g., "Shape.Circle"
+        fields: Vec<String>,  // Field bindings, e.g., ["r"] for Circle(r)
+    },
 }
 
 /// Pattern for destructuring in variable declarations and for loops
@@ -319,6 +361,12 @@ pub enum Pattern {
     Ident(String),
     Underscore,
     Tuple(Vec<Pattern>),
+}
+
+#[derive(Debug, Clone)]
+pub struct EnumVariant {
+    pub name: String,
+    pub fields: Vec<(String, Option<TypeAnnotation>)>,  // Named fields like (radius: f64)
 }
 
 #[derive(Debug, Clone)]

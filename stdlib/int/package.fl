@@ -4,63 +4,248 @@
 // ║                  Integer Class and Methods                        ║
 // ╚══════════════════════════════════════════════════════════════════╗
 
-/// Integer class - wrapper for int primitive
+/// Integer class - wrapper for int primitive.
+///
+/// Provides methods for integer operations, conversions, and checks.
+///
+/// # Examples
+///
+/// ```forge
+/// import std.int;
+/// var n = int.new(42);
+/// println(n.to_str());      // "42"
+/// println(n.is_even());     // true
+/// println(n.abs());         // 42
+/// ```
 class int {
     var _value: int;
 
-    /// Constructor - converts value to integer
+    /// Constructor - converts value to integer.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Any value to convert to integer
+    ///
+    /// # Returns
+    ///
+    /// A new integer wrapper instance.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// var n1 = int.new(42);
+    /// var n2 = int.new("123");
+    /// ```
     fn new(value) {
         return builtin_int(value);
     }
 
-    /// Convert to string
+    /// Convert the integer to a string.
+    ///
+    /// # Returns
+    ///
+    /// The string representation of the integer.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(42).to_str();   // "42"
+    /// int.new(-1).to_str();   // "-1"
+    /// ```
     fn to_str(self) {
         return builtin_int_to_str(self._value);
     }
 
-    /// Convert to float
+    /// Convert the integer to a float.
+    ///
+    /// # Returns
+    ///
+    /// The float representation of the integer.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(42).to_float();   // 42.0
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `to_str()` - convert to string
     fn to_float(self) {
         return builtin_int_to_float(self._value);
     }
 
-    /// Absolute value
+    /// Get the absolute value.
+    ///
+    /// # Returns
+    ///
+    /// The non-negative value of the integer.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(-5).abs();   // 5
+    /// int.new(5).abs();    // 5
+    /// int.new(0).abs();    // 0
+    /// ```
     fn abs(self) {
         return builtin_int_abs(self._value);
     }
 
-    /// Check if even
+    /// Check if the integer is even.
+    ///
+    /// # Returns
+    ///
+    /// `true` if divisible by 2, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(4).is_even();   // true
+    /// int.new(7).is_even();   // false
+    /// int.new(0).is_even();   // true
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_odd()` - check if odd
     fn is_even(self) {
         return self._value % 2 == 0;
     }
 
-    /// Check if odd
+    /// Check if the integer is odd.
+    ///
+    /// # Returns
+    ///
+    /// `true` if not divisible by 2, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(7).is_odd();    // true
+    /// int.new(4).is_odd();    // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_even()` - check if even
     fn is_odd(self) {
         return self._value % 2 != 0;
     }
 
-    /// Check if positive
+    /// Check if the integer is positive.
+    ///
+    /// # Returns
+    ///
+    /// `true` if greater than 0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(5).is_positive();   // true
+    /// int.new(-3).is_positive();  // false
+    /// int.new(0).is_positive();   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_negative()` - check if negative
+    /// * `is_zero()` - check if zero
     fn is_positive(self) {
         return self._value > 0;
     }
 
-    /// Check if negative
+    /// Check if the integer is negative.
+    ///
+    /// # Returns
+    ///
+    /// `true` if less than 0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(-3).is_negative();  // true
+    /// int.new(5).is_negative();   // false
+    /// int.new(0).is_negative();   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_positive()` - check if positive
+    /// * `is_zero()` - check if zero
     fn is_negative(self) {
         return self._value < 0;
     }
 
-    /// Check if zero
+    /// Check if the integer is zero.
+    ///
+    /// # Returns
+    ///
+    /// `true` if equal to 0, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(0).is_zero();     // true
+    /// int.new(5).is_zero();     // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `is_positive()` - check if positive
+    /// * `is_negative()` - check if negative
     fn is_zero(self) {
         return self._value == 0;
     }
 
-    /// Get sign (-1, 0, or 1)
+    /// Get the sign of the integer.
+    ///
+    /// # Returns
+    ///
+    /// `-1` if negative, `0` if zero, `1` if positive.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(-5).sign();   // -1
+    /// int.new(0).sign();    // 0
+    /// int.new(5).sign();    // 1
+    /// ```
     fn sign(self) {
         if self._value < 0 { return -1; }
         if self._value > 0 { return 1; }
         return 0;
     }
 
-    /// Clamp between min and max
+    /// Clamp the integer between min and max.
+    ///
+    /// # Arguments
+    ///
+    /// * `min_val` - The minimum allowed value
+    /// * `max_val` - The maximum allowed value
+    ///
+    /// # Returns
+    ///
+    /// The value clamped to the range [`min_val`, `max_val`].
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.int;
+    /// int.new(5).clamp(0, 10);    // 5
+    /// int.new(-1).clamp(0, 10);   // 0
+    /// int.new(15).clamp(0, 10);   // 10
+    /// ```
     fn clamp(self, min_val, max_val) {
         if self._value < min_val { return min_val; }
         if self._value > max_val { return max_val; }

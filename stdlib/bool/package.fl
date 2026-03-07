@@ -4,48 +4,195 @@
 // ║                  Boolean Class and Methods                        ║
 // ╚══════════════════════════════════════════════════════════════════╗
 
-/// Boolean class - wrapper for bool primitive
+/// Boolean class - wrapper for bool primitive.
+///
+/// Provides methods for boolean operations and conversions.
+///
+/// # Examples
+///
+/// ```forge
+/// import std.bool;
+/// var b = bool.new(true);
+/// println(b.to_str());    // "true"
+/// println(b.not());       // false
+/// ```
 class bool {
     var _value: bool;
 
-    /// Constructor - converts value to boolean
+    /// Constructor - converts value to boolean.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Any value to convert to boolean
+    ///
+    /// # Returns
+    ///
+    /// A new boolean wrapper instance.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// var b1 = bool.new(true);
+    /// var b2 = bool.new(false);
+    /// ```
     fn new(value) {
         return builtin_bool(value);
     }
 
-    /// Convert to string
+    /// Convert the boolean to a string.
+    ///
+    /// # Returns
+    ///
+    /// `"true"` or `"false"`.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// var b = bool.new(true);
+    /// b.to_str();   // "true"
+    /// ```
     fn to_str(self) {
         if self._value { return "true"; }
         return "false";
     }
 
-    /// Convert to integer (true=1, false=0)
+    /// Convert the boolean to an integer.
+    ///
+    /// # Returns
+    ///
+    /// `1` for `true`, `0` for `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).to_int();   // 1
+    /// bool.new(false).to_int();  // 0
+    /// ```
     fn to_int(self) {
         if self._value { return 1; }
         return 0;
     }
 
-    /// Logical AND
+    /// Logical AND operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another boolean value
+    ///
+    /// # Returns
+    ///
+    /// `true` if both `self` and `other` are `true`, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).and(true);    // true
+    /// bool.new(true).and(false);   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `or()` - logical OR
+    /// * `xor()` - logical XOR
     fn and(self, other) {
         return self._value && other;
     }
 
-    /// Logical OR
+    /// Logical OR operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another boolean value
+    ///
+    /// # Returns
+    ///
+    /// `true` if either `self` or `other` is `true`, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).or(false);    // true
+    /// bool.new(false).or(false);   // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `and()` - logical AND
+    /// * `xor()` - logical XOR
     fn or(self, other) {
         return self._value || other;
     }
 
-    /// Logical XOR
+    /// Logical XOR (exclusive OR) operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another boolean value
+    ///
+    /// # Returns
+    ///
+    /// `true` if exactly one of `self` or `other` is `true`, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).xor(false);   // true
+    /// bool.new(true).xor(true);    // false
+    /// bool.new(false).xor(false);  // false
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `and()` - logical AND
+    /// * `or()` - logical OR
     fn xor(self, other) {
         return self._value != other;
     }
 
-    /// Logical NOT
+    /// Logical NOT operation.
+    ///
+    /// # Returns
+    ///
+    /// `true` if `self` is `false`, `false` if `self` is `true`.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).not();    // false
+    /// bool.new(false).not();   // true
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `toggle()` - toggle the boolean value (alias for not)
     fn not(self) {
         return !self._value;
     }
 
-    /// Toggle value
+    /// Toggle the boolean value.
+    ///
+    /// # Returns
+    ///
+    /// The opposite of the current value.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.bool;
+    /// bool.new(true).toggle();   // false
+    /// bool.new(false).toggle();  // true
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `not()` - logical NOT (same operation)
     fn toggle(self) {
         return !self._value;
     }

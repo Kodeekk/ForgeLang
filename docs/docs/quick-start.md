@@ -167,6 +167,14 @@ println("Starting {name} on port {port}");
 
 // Expressions in strings
 println("Next port will be {port + 1}");
+// Lists
+var numbers: list<int> = [1, 2, 3, 4, 5];
+numbers.push(6);
+var first = numbers[0];
+
+// Maps (using object literals)
+var config = { name: "myapp", version: "1.0" };
+println(config.name);  // "myapp"
 ```
 
 ## Practical Examples

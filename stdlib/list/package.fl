@@ -4,7 +4,31 @@
 // ║                  List Operations and Utilities                    ║
 // ╚══════════════════════════════════════════════════════════════════╗
 
-/// Create a list of integers from start to end (exclusive)
+/// Create a list of integers from start to end (exclusive).
+///
+/// Generates a sequence of integers in the range [start, end).
+///
+/// # Arguments
+///
+/// * `start` - The starting value (inclusive)
+/// * `end` - The ending value (exclusive)
+///
+/// # Returns
+///
+/// A list of integers from `start` to `end - 1`.
+///
+/// # Examples
+///
+/// ```forge
+/// import [range] from std.list;
+/// range(0, 5);    // [0, 1, 2, 3, 4]
+/// range(3, 7);    // [3, 4, 5, 6]
+/// range(0, 0);    // []
+/// ```
+///
+/// # See Also
+///
+/// * `repeat()` - create a list with repeated values
 fn range(start, end) {
     var result = [];
     var i = start;
@@ -15,7 +39,29 @@ fn range(start, end) {
     return result;
 }
 
-/// Create a list with repeated value
+/// Create a list with a repeated value.
+///
+/// # Arguments
+///
+/// * `value` - The value to repeat
+/// * `count` - Number of times to repeat
+///
+/// # Returns
+///
+/// A list containing `value` repeated `count` times.
+///
+/// # Examples
+///
+/// ```forge
+/// import [repeat] from std.list;
+/// repeat(0, 5);        // [0, 0, 0, 0, 0]
+/// repeat("x", 3);      // ["x", "x", "x"]
+/// repeat([], 2);       // [[], []]
+/// ```
+///
+/// # See Also
+///
+/// * `range()` - create a list of sequential integers
 fn repeat(value, count) {
     var result = [];
     var i = 0;
@@ -26,7 +72,28 @@ fn repeat(value, count) {
     return result;
 }
 
-/// Sum of list
+/// Compute the sum of all elements in a list.
+///
+/// # Arguments
+///
+/// * `list` - A list of integers
+///
+/// # Returns
+///
+/// The sum of all elements.
+///
+/// # Examples
+///
+/// ```forge
+/// import [sum] from std.list;
+/// sum([1, 2, 3, 4]);   // 10
+/// sum([]);             // 0
+/// ```
+///
+/// # See Also
+///
+/// * `product()` - compute the product of all elements
+/// * `reduce()` - general reduction operation
 fn sum(list) -> int {
     var total = 0;
     for n in list {
@@ -35,7 +102,28 @@ fn sum(list) -> int {
     return total;
 }
 
-/// Product of list
+/// Compute the product of all elements in a list.
+///
+/// # Arguments
+///
+/// * `list` - A list of integers
+///
+/// # Returns
+///
+/// The product of all elements.
+///
+/// # Examples
+///
+/// ```forge
+/// import [product] from std.list;
+/// product([1, 2, 3, 4]);   // 24
+/// product([]);             // 1
+/// ```
+///
+/// # See Also
+///
+/// * `sum()` - compute the sum of all elements
+/// * `reduce()` - general reduction operation
 fn product(list) -> int {
     var total = 1;
     for n in list {
@@ -44,7 +132,33 @@ fn product(list) -> int {
     return total;
 }
 
-/// Filter list by predicate function
+/// Filter a list by a predicate function.
+///
+/// Returns a new list containing only the elements for which
+/// the predicate returns `true`.
+///
+/// # Arguments
+///
+/// * `list` - The list to filter
+/// * `predicate` - A function that takes an element and returns bool
+///
+/// # Returns
+///
+/// A new list containing only elements that satisfy the predicate.
+///
+/// # Examples
+///
+/// ```forge
+/// import [filter] from std.list;
+/// var nums = [1, 2, 3, 4, 5];
+/// var evens = filter(nums, fn(n) { return n % 2 == 0; });
+/// // evens = [2, 4]
+/// ```
+///
+/// # See Also
+///
+/// * `map()` - transform each element
+/// * `reduce()` - reduce to a single value
 fn filter(list, predicate) {
     var result = [];
     for item in list {
@@ -55,7 +169,33 @@ fn filter(list, predicate) {
     return result;
 }
 
-/// Map list with function
+/// Transform each element of a list with a function.
+///
+/// Applies `func` to each element and returns a new list
+/// of the results.
+///
+/// # Arguments
+///
+/// * `list` - The list to transform
+/// * `func` - A function to apply to each element
+///
+/// # Returns
+///
+/// A new list containing the transformed elements.
+///
+/// # Examples
+///
+/// ```forge
+/// import [map] from std.list;
+/// var nums = [1, 2, 3];
+/// var doubled = map(nums, fn(n) { return n * 2; });
+/// // doubled = [2, 4, 6]
+/// ```
+///
+/// # See Also
+///
+/// * `filter()` - filter elements by predicate
+/// * `reduce()` - reduce to a single value
 fn map(list, func) {
     var result = [];
     for item in list {
@@ -64,7 +204,34 @@ fn map(list, func) {
     return result;
 }
 
-/// Reduce list to single value
+/// Reduce a list to a single value.
+///
+/// Also known as "fold" or "aggregate". Combines all elements
+/// using a binary function and an initial value.
+///
+/// # Arguments
+///
+/// * `list` - The list to reduce
+/// * `initial` - The initial accumulator value
+/// * `func` - A function that takes (accumulator, element) and returns new accumulator
+///
+/// # Returns
+///
+/// The final accumulated value.
+///
+/// # Examples
+///
+/// ```forge
+/// import [reduce] from std.list;
+/// var nums = [1, 2, 3, 4];
+/// var sum = reduce(nums, 0, fn(acc, n) { return acc + n; });
+/// // sum = 10
+/// ```
+///
+/// # See Also
+///
+/// * `sum()` - compute sum (specialized reduce)
+/// * `product()` - compute product (specialized reduce)
 fn reduce(list, initial, func) {
     var acc = initial;
     for item in list {
@@ -73,7 +240,32 @@ fn reduce(list, initial, func) {
     return acc;
 }
 
-/// Check if any element satisfies predicate
+/// Check if any element satisfies a predicate.
+///
+/// Returns `true` as soon as an element satisfying the predicate
+/// is found (short-circuits).
+///
+/// # Arguments
+///
+/// * `list` - The list to check
+/// * `predicate` - A function that takes an element and returns bool
+///
+/// # Returns
+///
+/// `true` if any element satisfies the predicate, `false` otherwise.
+///
+/// # Examples
+///
+/// ```forge
+/// import [any] from std.list;
+/// var nums = [1, 2, 3, 4];
+/// any(nums, fn(n) { return n > 3; });   // true
+/// any(nums, fn(n) { return n > 10; });  // false
+/// ```
+///
+/// # See Also
+///
+/// * `all()` - check if all elements satisfy a predicate
 fn any(list, predicate) -> bool {
     for item in list {
         if predicate(item) {
@@ -83,7 +275,32 @@ fn any(list, predicate) -> bool {
     return false;
 }
 
-/// Check if all elements satisfy predicate
+/// Check if all elements satisfy a predicate.
+///
+/// Returns `false` as soon as an element not satisfying the predicate
+/// is found (short-circuits).
+///
+/// # Arguments
+///
+/// * `list` - The list to check
+/// * `predicate` - A function that takes an element and returns bool
+///
+/// # Returns
+///
+/// `true` if all elements satisfy the predicate, `false` otherwise.
+///
+/// # Examples
+///
+/// ```forge
+/// import [all] from std.list;
+/// var nums = [2, 4, 6, 8];
+/// all(nums, fn(n) { return n % 2 == 0; });   // true
+/// all(nums, fn(n) { return n > 3; });        // false
+/// ```
+///
+/// # See Also
+///
+/// * `any()` - check if any element satisfies a predicate
 fn all(list, predicate) -> bool {
     for item in list {
         if !predicate(item) {
@@ -93,7 +310,27 @@ fn all(list, predicate) -> bool {
     return true;
 }
 
-/// Find index of value (-1 if not found)
+/// Find the index of a value in a list.
+///
+/// Searches for the first occurrence of `value` and returns its index.
+///
+/// # Arguments
+///
+/// * `list` - The list to search
+/// * `value` - The value to find
+///
+/// # Returns
+///
+/// The index of the first occurrence of `value`, or `-1` if not found.
+///
+/// # Examples
+///
+/// ```forge
+/// import [find_index] from std.list;
+/// var fruits = ["apple", "banana", "cherry"];
+/// find_index(fruits, "banana");   // 1
+/// find_index(fruits, "orange");   // -1
+/// ```
 fn find_index(list, value) -> int {
     var i = 0;
     for item in list {
@@ -105,7 +342,25 @@ fn find_index(list, value) -> int {
     return -1;
 }
 
-/// Count occurrences of value
+/// Count occurrences of a value in a list.
+///
+/// # Arguments
+///
+/// * `list` - The list to search
+/// * `value` - The value to count
+///
+/// # Returns
+///
+/// The number of times `value` appears in `list`.
+///
+/// # Examples
+///
+/// ```forge
+/// import [count] from std.list;
+/// var nums = [1, 2, 2, 3, 2];
+/// count(nums, 2);   // 3
+/// count(nums, 5);   // 0
+/// ```
 fn count(list, value) -> int {
     var c = 0;
     for item in list {
@@ -116,7 +371,25 @@ fn count(list, value) -> int {
     return c;
 }
 
-/// Reverse list
+/// Reverse a list.
+///
+/// Returns a new list with elements in reverse order.
+///
+/// # Arguments
+///
+/// * `list` - The list to reverse
+///
+/// # Returns
+///
+/// A new list with elements in reverse order.
+///
+/// # Examples
+///
+/// ```forge
+/// import [reverse] from std.list;
+/// reverse([1, 2, 3]);   // [3, 2, 1]
+/// reverse([]);          // []
+/// ```
 fn reverse(list) {
     var result = [];
     var i = list.length() - 1;
@@ -127,7 +400,29 @@ fn reverse(list) {
     return result;
 }
 
-/// Get first n elements
+/// Get the first n elements of a list.
+///
+/// # Arguments
+///
+/// * `list` - The list to take from
+/// * `n` - Number of elements to take
+///
+/// # Returns
+///
+/// A new list containing up to the first `n` elements.
+/// If `n` is greater than the list length, returns the entire list.
+///
+/// # Examples
+///
+/// ```forge
+/// import [take] from std.list;
+/// take([1, 2, 3, 4, 5], 3);   // [1, 2, 3]
+/// take([1, 2], 5);            // [1, 2]
+/// ```
+///
+/// # See Also
+///
+/// * `skip()` - skip the first n elements
 fn take(list, n) {
     var result = [];
     var i = 0;
@@ -138,7 +433,28 @@ fn take(list, n) {
     return result;
 }
 
-/// Skip first n elements
+/// Skip the first n elements of a list.
+///
+/// # Arguments
+///
+/// * `list` - The list to skip from
+/// * `n` - Number of elements to skip
+///
+/// # Returns
+///
+/// A new list containing elements after the first `n`.
+///
+/// # Examples
+///
+/// ```forge
+/// import [skip] from std.list;
+/// skip([1, 2, 3, 4, 5], 2);   // [3, 4, 5]
+/// skip([1, 2], 5);            // []
+/// ```
+///
+/// # See Also
+///
+/// * `take()` - get the first n elements
 fn skip(list, n) {
     var result = [];
     var i = n;
@@ -149,7 +465,23 @@ fn skip(list, n) {
     return result;
 }
 
-/// Concatenate two lists
+/// Concatenate two lists.
+///
+/// # Arguments
+///
+/// * `a` - First list
+/// * `b` - Second list
+///
+/// # Returns
+///
+/// A new list containing all elements of `a` followed by all elements of `b`.
+///
+/// # Examples
+///
+/// ```forge
+/// import [concat] from std.list;
+/// concat([1, 2], [3, 4]);   // [1, 2, 3, 4]
+/// ```
 fn concat(a, b) {
     var result = a;
     for item in b {
@@ -158,7 +490,25 @@ fn concat(a, b) {
     return result;
 }
 
-/// Remove duplicates
+/// Remove duplicates from a list.
+///
+/// Returns a new list with duplicate values removed.
+/// Preserves the order of first occurrences.
+///
+/// # Arguments
+///
+/// * `list` - The list to deduplicate
+///
+/// # Returns
+///
+/// A new list with duplicates removed.
+///
+/// # Examples
+///
+/// ```forge
+/// import [dedup] from std.list;
+/// dedup([1, 2, 2, 3, 2, 1]);   // [1, 2, 3]
+/// ```
 fn dedup(list) {
     var result = [];
     for item in list {
@@ -169,7 +519,25 @@ fn dedup(list) {
     return result;
 }
 
-/// Get sublist from start to end (exclusive)
+/// Get a sublist from start to end (exclusive).
+///
+/// # Arguments
+///
+/// * `list` - The list to slice
+/// * `start` - Starting index (inclusive)
+/// * `end` - Ending index (exclusive)
+///
+/// # Returns
+///
+/// A new list containing elements from `start` to `end - 1`.
+///
+/// # Examples
+///
+/// ```forge
+/// import [slice] from std.list;
+/// slice([1, 2, 3, 4, 5], 1, 4);   // [2, 3, 4]
+/// slice([1, 2, 3], 0, 2);         // [1, 2]
+/// ```
 fn slice(list, start, end) {
     var result = [];
     var i = start;

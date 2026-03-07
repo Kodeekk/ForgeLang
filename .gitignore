@@ -5,4 +5,4 @@ IMPLEMENTATION_PLAN.md
 .env
 docs/.docusaurus
 docs/package-lock.json
-docs/node_moduless
+docs/node_modules

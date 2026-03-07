@@ -1,1596 +1,277 @@
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MODULE DECLARATION
+// ═══════════════════════════════════════════════════════════════════════════
+//                 FORGELANG SYSTEM ORCHESTRATION SHOWCASE
+// ═══════════════════════════════════════════════════════════════════════════
 //
-//   Every source file belongs to a module. The compiler uses this to
-//   resolve cross-file imports and enforce visibility boundaries.
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-module forge.demo;
-
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// IMPORTS
+// ForgeLang is a high-level interpreted systems language designed for
+// direct interaction with the operating system environment.
 //
-//   Three supported forms:
-//     import std.module;                        → std.module.fn()
-//     import std.module as alias;               → alias.fn()
-//     import [fn1, fn2 as f2] from std.module;  → bare names in scope
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// This file demonstrates:
+//
+// • modules and imports
+// • classes and interfaces
+// • filesystem manipulation
+// • environment access
+// • shell execution and pipelines
+// • lists and iteration
+// • text processing
+// • process orchestration
+// • runtime utilities
+//
+// The goal is not algorithmic complexity.
+// The goal is **system orchestration and environment control**.
+// ═══════════════════════════════════════════════════════════════════════════
 
 import [print, println] from std.io;
-import std.math;
-import std.list;
-import std.map;
-import std.set;
-import std.str;
-import std.fs   as fs;
+import std.fs;
 import std.env;
-import std.time;
-import std.fmt;
-import std.rand;
-import std.sort;
-import std.iter;
+import std.str;
+import std.list;
+import std.math;
+import std.proc;
 
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CONSTANTS & GLOBALS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL INFO
+// ═══════════════════════════════════════════════════════════════════════════
 
-const APP_NAME: str = "ForgeLang";
-const VERSION:  str = "2.0.0";
-const PI:       f64 = 3.14159265358979;
-const E:        f64 = 2.71828182845904;
+const APP_NAME: str = "Forge System Showcase";
+const VERSION: str = "2.0";
 
-var total_tests:  int = 0;
-var passed_tests: int = 0;
-var failed_tests: int = 0;
+var tests_total: int = 0;
+var tests_passed: int = 0;
 
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TYPE ALIASES
-//
-//   `type` creates a named alias — useful for complex or repeated
-//   signatures, and for self-documenting intent.
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-type Predicate<T>  = fn(T) -> bool;
-type Transform<T>  = fn(T) -> T;
-type Reducer<T, A> = fn(A, T) -> A;
-type Comparator<T> = fn(T, T) -> int;   // negative / zero / positive
-type Matrix        = list<list<f64>>;
-
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ENUMS
-//
-//   Variants may carry associated data (tagged unions). Pattern
-//   matching on enums is exhaustive — the compiler warns on gaps.
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-enum Direction {
-    North,
-    South,
-    East,
-    West
-}
-
-enum Shape {
-    Circle(radius: f64),
-    Rect(width: f64, height: f64),
-    Triangle(base: f64, height: f64)
-}
-
-enum Color {
-    Red,
-    Green,
-    Blue,
-    Custom(r: int, g: int, b: int)
-}
-
-enum Option<T> {
-    Some(value: T),
-    None
-}
-
-enum Result<T, E> {
-    Ok(value: T),
-    Err(error: E)
-}
-
-enum LogLevel {
-    Debug,
-    Info,
-    Warn,
-    Error
-}
-
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════════════════
 // INTERFACES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════════════════
 
 interface Displayable {
     fn to_str(self) -> str;
 }
 
 interface Runnable {
-    fn run(self) -> void;
-}
-
-interface Comparable<T> {
-    fn compare(self, other: T) -> int;   // -1 | 0 | 1
-    fn eq(self, other: T)     -> bool;
-    fn lt(self, other: T)     -> bool;
-    fn gt(self, other: T)     -> bool;
-}
-
-interface Serializable {
-    fn to_json(self)          -> str;
-    fn from_json(raw: str)    -> Self;
-}
-
-interface Iterator<T> {
-    fn next(self)             -> Option<T>;
-    fn has_next(self)         -> bool;
-    fn reset(self)            -> void;
+    fn run(self) -> int;
 }
 
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CLASSES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA CLASSES
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ── Vector2 ──────────────────────────────────────────────────────────
-// Demonstrates operator overloading and Comparable.
+class FileInfo implements Displayable {
+    var path: str;
+    var size: int;
 
-class Vector2 implements Displayable, Comparable<Vector2> {
-    var x: f64;
-    var y: f64;
-
-    fn new(x: f64, y: f64) -> Vector2 {
-        return Vector2 { x: x, y: y };
-    }
-
-    fn zero()  -> Vector2 { return Vector2.new(0.0, 0.0); }
-    fn unit_x() -> Vector2 { return Vector2.new(1.0, 0.0); }
-    fn unit_y() -> Vector2 { return Vector2.new(0.0, 1.0); }
-
-    fn add(self, other: Vector2) -> Vector2 {
-        return Vector2.new(self.x + other.x, self.y + other.y);
-    }
-
-    fn sub(self, other: Vector2) -> Vector2 {
-        return Vector2.new(self.x - other.x, self.y - other.y);
-    }
-
-    fn scale(self, factor: f64) -> Vector2 {
-        return Vector2.new(self.x * factor, self.y * factor);
-    }
-
-    fn dot(self, other: Vector2) -> f64 {
-        return self.x * other.x + self.y * other.y;
-    }
-
-    fn magnitude(self) -> f64 {
-        return math.sqrt(self.x * self.x + self.y * self.y);
-    }
-
-    fn normalize(self) -> Vector2 {
-        var mag: f64 = self.magnitude();
-        if mag == 0.0 { return Vector2.zero(); }
-        return self.scale(1.0 / mag);
-    }
-
-    fn angle_to(self, other: Vector2) -> f64 {
-        var d: f64 = self.normalize().dot(other.normalize());
-        return math.acos(math.clamp(d, -1.0, 1.0));
-    }
-
-    fn lerp(self, other: Vector2, t: f64) -> Vector2 {
-        var clamped: f64 = math.clamp(t, 0.0, 1.0);
-        return self.add(other.sub(self).scale(clamped));
-    }
-
-    fn distance_to(self, other: Vector2) -> f64 {
-        return self.sub(other).magnitude();
-    }
-
-    fn compare(self, other: Vector2) -> int {
-        var lm: f64 = self.magnitude();
-        var rm: f64 = other.magnitude();
-        if lm < rm { return -1; }
-        if lm > rm { return  1; }
-        return 0;
-    }
-
-    fn eq(self, other: Vector2) -> bool { return self.compare(other) == 0; }
-    fn lt(self, other: Vector2) -> bool { return self.compare(other) <  0; }
-    fn gt(self, other: Vector2) -> bool { return self.compare(other) >  0; }
-
-    fn to_str(self) -> str {
-        return "Vec2({fmt.f2(self.x)}, {fmt.f2(self.y)})";
-    }
-}
-
-
-// ── Point ────────────────────────────────────────────────────────────
-
-class Point implements Displayable {
-    var x: int;
-    var y: int;
-
-    fn new(px: int, py: int) -> Point {
-        return Point { x: px, y: py };
-    }
-
-    fn origin() -> Point { return Point { x: 0, y: 0 }; }
-
-    fn manhattan(self) -> int {
-        return math.abs(self.x) + math.abs(self.y);
-    }
-
-    fn translate(self, dx: int, dy: int) -> Point {
-        return Point.new(self.x + dx, self.y + dy);
-    }
-
-    fn scale(self, factor: int) -> Point {
-        return Point.new(self.x * factor, self.y * factor);
-    }
-
-    fn quadrant(self) -> int {
-        if self.x > 0 && self.y > 0 { return 1; }
-        if self.x < 0 && self.y > 0 { return 2; }
-        if self.x < 0 && self.y < 0 { return 3; }
-        if self.x > 0 && self.y < 0 { return 4; }
-        return 0;
-    }
-
-    fn is_origin(self) -> bool { return self.x == 0 && self.y == 0; }
-
-    fn to_str(self) -> str { return "Point({self.x}, {self.y})"; }
-    fn debug(self)  -> str { return "{self.to_str()} [Q{self.quadrant()}]"; }
-}
-
-
-// ── Rectangle ────────────────────────────────────────────────────────
-
-class Rectangle implements Displayable {
-    var x:      int;
-    var y:      int;
-    var width:  int;
-    var height: int;
-
-    fn new(px: int, py: int, w: int, h: int) -> Rectangle {
-        return Rectangle { x: px, y: py, width: w, height: h };
-    }
-
-    fn square(size: int) -> Rectangle {
-        return Rectangle.new(0, 0, size, size);
-    }
-
-    fn area(self)      -> int { return self.width * self.height; }
-    fn perimeter(self) -> int { return 2 * (self.width + self.height); }
-
-    fn center(self) -> Point {
-        return Point.new(self.x + self.width / 2, self.y + self.height / 2);
-    }
-
-    fn contains(self, p: Point) -> bool {
-        return p.x >= self.x && p.x < self.x + self.width &&
-               p.y >= self.y && p.y < self.y + self.height;
-    }
-
-    fn intersects(self, other: Rectangle) -> bool {
-        return !(other.x >= self.x + self.width  ||
-                 other.x + other.width  <= self.x ||
-                 other.y >= self.y + self.height  ||
-                 other.y + other.height <= self.y);
-    }
-
-    fn expand(self, amount: int) -> Rectangle {
-        return Rectangle.new(
-            self.x - amount,
-            self.y - amount,
-            self.width  + amount * 2,
-            self.height + amount * 2
-        );
+    fn new(p: str, s: int) -> FileInfo {
+        return FileInfo { path: p, size: s };
     }
 
     fn to_str(self) -> str {
-        return "Rect({self.x}, {self.y}, {self.width}×{self.height})";
+        return self.path + " (" + self.size + " bytes)";
     }
 }
 
 
-// ── Counter ───────────────────────────────────────────────────────────
+class ProcessTask implements Runnable, Displayable {
+    var command: str;
 
-class Counter implements Displayable {
-    var value: int;
-    var step:  int;
-    var label: str;
-
-    fn new(start: int, step: int, label: str) -> Counter {
-        return Counter { value: start, step: step, label: label };
+    fn new(cmd: str) -> ProcessTask {
+        return ProcessTask { command: cmd };
     }
 
-    // Immutable update pattern — every mutation returns a new Counter.
-    fn increment(self) -> Counter {
-        return Counter { value: self.value + self.step, step: self.step, label: self.label };
-    }
+    fn run(self) -> int {
+        println("Running command:");
+        println(self.command);
 
-    fn decrement(self) -> Counter {
-        return Counter { value: self.value - self.step, step: self.step, label: self.label };
-    }
+        var result: int = proc.exec(self.command);
 
-    fn reset(self) -> Counter {
-        return Counter { value: 0, step: self.step, label: self.label };
-    }
+        println("Exit code: {result}");
 
-    fn with_step(self, new_step: int) -> Counter {
-        return Counter { value: self.value, step: new_step, label: self.label };
-    }
-
-    fn to_str(self) -> str { return "{self.label}: {self.value} (step {self.step})"; }
-}
-
-
-// ── User ──────────────────────────────────────────────────────────────
-
-class User implements Displayable, Runnable, Serializable {
-    var name:  str;
-    var age:   int;
-    var email: str;
-    var tags:  list<str>;
-
-    fn new(name: str, age: int, email: str) -> User {
-        return User { name: name, age: age, email: email, tags: [] };
-    }
-
-    fn guest() -> User {
-        return User.new("Guest", 0, "guest@forge.lang");
-    }
-
-    fn birthday(self) -> void {
-        self.age = self.age + 1;
-        println("Happy birthday, {self.name}! You are now {self.age}.");
-    }
-
-    fn add_tag(self, tag: str) -> void {
-        self.tags.push(tag);
-    }
-
-    fn has_tag(self, tag: str) -> bool {
-        return self.tags.contains(tag);
-    }
-
-    fn is_adult(self) -> bool { return self.age >= 18; }
-
-    fn to_str(self) -> str {
-        return "{self.name} (age {self.age}) <{self.email}>";
-    }
-
-    fn run(self) -> void {
-        println("User {self.name} is running...");
-    }
-
-    fn to_json(self) -> str {
-        return fmt.json({
-            "name":  self.name,
-            "age":   self.age,
-            "email": self.email,
-            "tags":  self.tags
-        });
-    }
-
-    fn from_json(raw: str) -> User {
-        var obj  = fmt.parse_json(raw);
-        return User.new(obj["name"], obj["age"], obj["email"]);
-    }
-}
-
-
-// ── Stack<T> ──────────────────────────────────────────────────────────
-// Generic class — T is resolved at instantiation.
-
-class Stack<T> implements Displayable {
-    var items: list<T>;
-
-    fn new() -> Stack<T> {
-        return Stack { items: [] };
-    }
-
-    fn push(self, item: T) -> void {
-        self.items.push(item);
-    }
-
-    fn pop(self) -> Option<T> {
-        if self.items.length() == 0 { return Option.None; }
-        var top: T = self.items.last();
-        self.items.pop();
-        return Option.Some(top);
-    }
-
-    fn peek(self) -> Option<T> {
-        if self.items.length() == 0 { return Option.None; }
-        return Option.Some(self.items.last());
-    }
-
-    fn is_empty(self) -> bool { return self.items.length() == 0; }
-    fn size(self)     -> int  { return self.items.length(); }
-
-    fn to_str(self) -> str { return "Stack{self.items}"; }
-}
-
-
-// ── Queue<T> ──────────────────────────────────────────────────────────
-
-class Queue<T> implements Displayable {
-    var items: list<T>;
-
-    fn new() -> Queue<T> {
-        return Queue { items: [] };
-    }
-
-    fn enqueue(self, item: T) -> void {
-        self.items.push(item);
-    }
-
-    fn dequeue(self) -> Option<T> {
-        if self.items.length() == 0 { return Option.None; }
-        var front: T = self.items.first();
-        self.items.shift();
-        return Option.Some(front);
-    }
-
-    fn front(self) -> Option<T> {
-        if self.items.length() == 0 { return Option.None; }
-        return Option.Some(self.items.first());
-    }
-
-    fn is_empty(self) -> bool { return self.items.length() == 0; }
-    fn size(self)     -> int  { return self.items.length(); }
-
-    fn to_str(self) -> str { return "Queue{self.items}"; }
-}
-
-
-// ── Logger ────────────────────────────────────────────────────────────
-
-class Logger {
-    var prefix: str;
-    var level:  LogLevel;
-    var output: list<str>;
-
-    fn new(prefix: str, level: LogLevel) -> Logger {
-        return Logger { prefix: prefix, level: level, output: [] };
-    }
-
-    fn log(self, level: LogLevel, message: str) -> void {
-        var label: str = match level {
-            LogLevel.Debug => "[DEBUG]",
-            LogLevel.Info  => "[INFO] ",
-            LogLevel.Warn  => "[WARN] ",
-            LogLevel.Error => "[ERROR]"
-        };
-        var line: str = "{label} {self.prefix}: {message}";
-        self.output.push(line);
-        println(line);
-    }
-
-    fn debug(self, msg: str) -> void { self.log(LogLevel.Debug, msg); }
-    fn info(self,  msg: str) -> void { self.log(LogLevel.Info,  msg); }
-    fn warn(self,  msg: str) -> void { self.log(LogLevel.Warn,  msg); }
-    fn error(self, msg: str) -> void { self.log(LogLevel.Error, msg); }
-
-    fn dump(self) -> list<str> { return self.output; }
-    fn clear(self) -> void     { self.output = []; }
-}
-
-
-// ── EventEmitter ──────────────────────────────────────────────────────
-
-class EventEmitter {
-    var listeners: map<str, list<fn(str) -> void>>;
-
-    fn new() -> EventEmitter {
-        return EventEmitter { listeners: map.new() };
-    }
-
-    fn on(self, event: str, handler: fn(str) -> void) -> void {
-        if !self.listeners.has(event) {
-            self.listeners.set(event, []);
-        }
-        self.listeners.get(event).push(handler);
-    }
-
-    fn emit(self, event: str, data: str) -> void {
-        if self.listeners.has(event) {
-            for handler in self.listeners.get(event) {
-                handler(data);
-            }
-        }
-    }
-
-    fn off(self, event: str) -> void {
-        self.listeners.delete(event);
-    }
-}
-
-
-// ── Cat (external implement) ──────────────────────────────────────────
-
-class Cat {
-    var name: str;
-    var lives: int;
-}
-
-implement Displayable for Cat {
-    fn to_str(self) -> str {
-        return "🐱 {self.name} ({self.lives} lives)";
-    }
-}
-
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// GENERICS — STANDALONE FUNCTIONS
-//
-//   Generic type parameters appear in angle brackets after the name.
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-fn identity<T>(value: T) -> T {
-    return value;
-}
-
-fn swap<T>(a: T, b: T) -> (T, T) {
-    return (b, a);
-}
-
-fn clamp<T: Comparable<T>>(value: T, lo: T, hi: T) -> T {
-    if value.lt(lo) { return lo; }
-    if value.gt(hi) { return hi; }
-    return value;
-}
-
-fn zip<A, B>(a: list<A>, b: list<B>) -> list<(A, B)> {
-    var result: list<(A, B)> = [];
-    var len: int = math.min(a.length(), b.length());
-    var i: int = 0;
-    while i < len {
-        result.push((a[i], b[i]));
-        i = i + 1;
-    }
-    return result;
-}
-
-fn unzip<A, B>(pairs: list<(A, B)>) -> (list<A>, list<B>) {
-    var lefts:  list<A> = [];
-    var rights: list<B> = [];
-    for (a, b) in pairs {
-        lefts.push(a);
-        rights.push(b);
-    }
-    return (lefts, rights);
-}
-
-fn flatten<T>(nested: list<list<T>>) -> list<T> {
-    var result: list<T> = [];
-    for inner in nested {
-        for item in inner {
-            result.push(item);
-        }
-    }
-    return result;
-}
-
-fn chunk<T>(items: list<T>, size: int) -> list<list<T>> {
-    var result: list<list<T>> = [];
-    var i: int = 0;
-    while i < items.length() {
-        result.push(items.slice(i, i + size));
-        i = i + size;
-    }
-    return result;
-}
-
-fn take_while<T>(items: list<T>, pred: Predicate<T>) -> list<T> {
-    var result: list<T> = [];
-    for item in items {
-        if !pred(item) { break; }
-        result.push(item);
-    }
-    return result;
-}
-
-fn drop_while<T>(items: list<T>, pred: Predicate<T>) -> list<T> {
-    var result: list<T> = [];
-    var dropping: bool = true;
-    for item in items {
-        if dropping && pred(item) { continue; }
-        dropping = false;
-        result.push(item);
-    }
-    return result;
-}
-
-fn group_by<T, K>(items: list<T>, key_fn: fn(T) -> K) -> map<K, list<T>> {
-    var groups: map<K, list<T>> = map.new();
-    for item in items {
-        var k: K = key_fn(item);
-        if !groups.has(k) { groups.set(k, []); }
-        groups.get(k).push(item);
-    }
-    return groups;
-}
-
-fn partition<T>(items: list<T>, pred: Predicate<T>) -> (list<T>, list<T>) {
-    var yes: list<T> = [];
-    var no:  list<T> = [];
-    for item in items {
-        if pred(item) { yes.push(item); }
-        else          { no.push(item);  }
-    }
-    return (yes, no);
-}
-
-fn compose<A, B, C>(f: fn(B) -> C, g: fn(A) -> B) -> fn(A) -> C {
-    return fn(x: A) -> C { return f(g(x)); };
-}
-
-fn pipe<T>(value: T, fns: list<Transform<T>>) -> T {
-    var current: T = value;
-    for f in fns {
-        current = f(current);
-    }
-    return current;
-}
-
-fn memoize<T, R>(f: fn(T) -> R) -> fn(T) -> R {
-    var cache: map<T, R> = map.new();
-    return fn(x: T) -> R {
-        if cache.has(x) { return cache.get(x); }
-        var result: R = f(x);
-        cache.set(x, result);
         return result;
-    };
+    }
+
+    fn to_str(self) -> str {
+        return "ProcessTask: " + self.command;
+    }
 }
 
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// UTILITY & DOMAIN FUNCTIONS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
 
-// — Test harness —
+fn section(title: str) {
+    println("");
+    println("==============================================");
+    println(title);
+    println("==============================================");
+}
 
-fn test(name: str, condition: bool) -> void {
-    total_tests = total_tests + 1;
-    if condition {
-        passed_tests = passed_tests + 1;
-        println("  [PASS] {name}");
+
+fn test(name: str, cond: bool) {
+    tests_total = tests_total + 1;
+
+    if cond {
+        tests_passed = tests_passed + 1;
+        println("[PASS] " + name);
     } else {
-        failed_tests = failed_tests + 1;
-        println("  [FAIL] {name}");
+        println("[FAIL] " + name);
     }
 }
 
-fn section(title: str) -> void {
-    println("\n========================================");
-    println("  {title}");
-    println("========================================\n");
-}
 
-fn benchmark(label: str, task: fn() -> void) -> void {
-    var start   = time.now();
-    task();
-    var elapsed = time.now() - start;
-    println("  ⏱  [{label}] {elapsed} ms");
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// STRING UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
 
+fn string_demo() {
+    section("STRING PROCESSING");
 
-// — Strings —
+    var text: str = "   ForgeLang is powerful   ";
 
-fn greet(name: str) -> str {
-    if name.length() == 0 { return "Hello, Stranger!"; }
-    return "Hello, {name}!";
-}
+    println("Original: '" + text + "'");
+    println("Trimmed: '" + text.trim() + "'");
+    println("Upper: '" + text.upper() + "'");
+    println("Reversed: '" + text.reverse() + "'");
 
-fn slugify(s: str) -> str {
-    return s.trim().lower().replace(" ", "-").replace_regex("[^a-z0-9\\-]", "");
-}
-
-fn truncate(s: str, max_len: int, ellipsis: str) -> str {
-    if s.length() <= max_len { return s; }
-    return s.slice(0, max_len - ellipsis.length()) + ellipsis;
-}
-
-fn pad_left(s: str, width: int, char: str) -> str {
-    var pad: int = width - s.length();
-    if pad <= 0 { return s; }
-    return char.repeat(pad) + s;
-}
-
-fn pad_right(s: str, width: int, char: str) -> str {
-    var pad: int = width - s.length();
-    if pad <= 0 { return s; }
-    return s + char.repeat(pad);
-}
-
-fn count_words(s: str) -> int {
-    return s.trim().split(" ").filter(fn(w: str) -> bool {
-        return w.length() > 0;
-    }).length();
-}
-
-fn title_case(s: str) -> str {
-    return s.split(" ").map(fn(word: str) -> str {
-        if word.length() == 0 { return word; }
-        return word.slice(0, 1).upper() + word.slice(1).lower();
-    }).join(" ");
-}
-
-fn is_palindrome(s: str) -> bool {
-    var clean: str = s.lower().replace_regex("[^a-z0-9]", "");
-    return clean == clean.reverse();
+    test("trim works", text.trim() == "ForgeLang is powerful");
+    test("upper works", "forge".upper() == "FORGE");
 }
 
 
-// — Numbers —
-
-fn fib(n: int) -> int {
-    if n <= 1 { return n; }
-    return fib(n - 1) + fib(n - 2);
-}
-
-var fib_memo: fn(int) -> int = memoize(fn(n: int) -> int {
-    if n <= 1 { return n; }
-    return fib_memo(n - 1) + fib_memo(n - 2);
-});
-
-fn factorial(n: int) -> int {
-    if n <= 1 { return 1; }
-    return n * factorial(n - 1);
-}
-
-fn collatz(n: int) -> list<int> {
-    var seq: list<int> = [n];
-    var cur: int = n;
-    while cur != 1 {
-        if cur % 2 == 0 { cur = cur / 2; }
-        else            { cur = cur * 3 + 1; }
-        seq.push(cur);
-    }
-    return seq;
-}
-
-fn digits(n: int) -> list<int> {
-    return str(math.abs(n)).chars().map(fn(c: str) -> int { return int(c); });
-}
-
-fn digital_root(n: int) -> int {
-    if n < 10 { return n; }
-    return digital_root(digits(n).reduce(0, fn(acc: int, d: int) -> int { return acc + d; }));
-}
-
-fn to_roman(n: int) -> str {
-    const VALUES: list<int> = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
-    const SYMS:   list<str> = ["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"];
-    var result: str = "";
-    var rem: int = n;
-    var i: int = 0;
-    while i < VALUES.length() {
-        while rem >= VALUES[i] {
-            result = result + SYMS[i];
-            rem = rem - VALUES[i];
-        }
-        i = i + 1;
-    }
-    return result;
-}
-
-fn clamp_int(n: int, lo: int, hi: int) -> int {
-    if n < lo { return lo; }
-    if n > hi { return hi; }
-    return n;
-}
-
-fn lerp_f64(a: f64, b: f64, t: f64) -> f64 {
-    return a + (b - a) * math.clamp(t, 0.0, 1.0);
-}
-
-fn map_range(val: f64, in_lo: f64, in_hi: f64, out_lo: f64, out_hi: f64) -> f64 {
-    return out_lo + (val - in_lo) / (in_hi - in_lo) * (out_hi - out_lo);
-}
-
-
-// — Collections —
-
-fn primes_up_to(limit: int) -> list<int> {
-    var sieve: list<bool> = list.fill(limit + 1, true);
-    sieve[0] = false;
-    sieve[1] = false;
-    var i: int = 2;
-    while i * i <= limit {
-        if sieve[i] {
-            var j: int = i * i;
-            while j <= limit {
-                sieve[j] = false;
-                j = j + i;
-            }
-        }
-        i = i + 1;
-    }
-    var result: list<int> = [];
-    var k: int = 2;
-    while k <= limit {
-        if sieve[k] { result.push(k); }
-        k = k + 1;
-    }
-    return result;
-}
-
-fn running_sum(numbers: list<int>) -> list<int> {
-    var result: list<int> = [];
-    var acc: int = 0;
-    for n in numbers {
-        acc = acc + n;
-        result.push(acc);
-    }
-    return result;
-}
-
-fn moving_average(numbers: list<f64>, window: int) -> list<f64> {
-    var result: list<f64> = [];
-    var i: int = 0;
-    while i <= numbers.length() - window {
-        var slice: list<f64> = numbers.slice(i, i + window);
-        var avg: f64 = slice.reduce(0.0, fn(a: f64, x: f64) -> f64 { return a + x; }) / f64(window);
-        result.push(avg);
-        i = i + 1;
-    }
-    return result;
-}
-
-fn frequency_map(items: list<str>) -> map<str, int> {
-    var freq: map<str, int> = map.new();
-    for item in items {
-        if freq.has(item) { freq.set(item, freq.get(item) + 1); }
-        else              { freq.set(item, 1); }
-    }
-    return freq;
-}
-
-fn deduplicate<T>(items: list<T>) -> list<T> {
-    var seen:   set<T>    = set.new();
-    var result: list<T>   = [];
-    for item in items {
-        if !seen.has(item) {
-            seen.add(item);
-            result.push(item);
-        }
-    }
-    return result;
-}
-
-fn rotate<T>(items: list<T>, n: int) -> list<T> {
-    if items.length() == 0 { return items; }
-    var offset: int = n % items.length();
-    return items.slice(offset).concat(items.slice(0, offset));
-}
-
-fn transpose(matrix: Matrix) -> Matrix {
-    if matrix.length() == 0 { return []; }
-    var rows: int = matrix.length();
-    var cols: int = matrix[0].length();
-    var result: Matrix = list.fill(cols, fn() { return list.fill(rows, 0.0); });
-    var r: int = 0;
-    while r < rows {
-        var c: int = 0;
-        while c < cols {
-            result[c][r] = matrix[r][c];
-            c = c + 1;
-        }
-        r = r + 1;
-    }
-    return result;
-}
-
-
-// — Geometry —
-
-fn shape_area(s: Shape) -> f64 {
-    return match s {
-        Shape.Circle(r)       => PI * r * r,
-        Shape.Rect(w, h)      => w * h,
-        Shape.Triangle(b, h)  => 0.5 * b * h
-    };
-}
-
-fn shape_perimeter(s: Shape) -> f64 {
-    return match s {
-        Shape.Circle(r)       => 2.0 * PI * r,
-        Shape.Rect(w, h)      => 2.0 * (w + h),
-        Shape.Triangle(b, h)  => b + 2.0 * math.sqrt((b / 2.0) * (b / 2.0) + h * h)
-    };
-}
-
-fn shape_name(s: Shape) -> str {
-    return match s {
-        Shape.Circle(_)      => "Circle",
-        Shape.Rect(_, _)     => "Rectangle",
-        Shape.Triangle(_, _) => "Triangle"
-    };
-}
-
-
-// — Color —
-
-fn color_to_hex(c: Color) -> str {
-    return match c {
-        Color.Red              => "#FF0000",
-        Color.Green            => "#00FF00",
-        Color.Blue             => "#0000FF",
-        Color.Custom(r, g, b)  => "#{pad_left(fmt.hex(r), 2, "0")}{pad_left(fmt.hex(g), 2, "0")}{pad_left(fmt.hex(b), 2, "0")}"
-    };
-}
-
-fn color_blend(a: Color, b: Color, t: f64) -> Color {
-    var (ar, ag, ab) = color_to_rgb(a);
-    var (br, bg, bb) = color_to_rgb(b);
-    return Color.Custom(
-        int(lerp_f64(f64(ar), f64(br), t)),
-        int(lerp_f64(f64(ag), f64(bg), t)),
-        int(lerp_f64(f64(ab), f64(bb), t))
-    );
-}
-
-fn color_to_rgb(c: Color) -> (int, int, int) {
-    return match c {
-        Color.Red             => (255, 0,   0),
-        Color.Green           => (0,   255, 0),
-        Color.Blue            => (0,   0,   255),
-        Color.Custom(r, g, b) => (r,   g,   b)
-    };
-}
-
-
-// — Result helpers —
-
-fn safe_divide(a: f64, b: f64) -> Result<f64, str> {
-    if b == 0.0 { return Result.Err("division by zero"); }
-    return Result.Ok(a / b);
-}
-
-fn safe_sqrt(n: f64) -> Result<f64, str> {
-    if n < 0.0 { return Result.Err("cannot sqrt negative number"); }
-    return Result.Ok(math.sqrt(n));
-}
-
-fn unwrap_or<T>(result: Result<T, str>, fallback: T) -> T {
-    return match result {
-        Result.Ok(v)  => v,
-        Result.Err(_) => fallback
-    };
-}
-
-fn map_result<T, U>(result: Result<T, str>, f: fn(T) -> U) -> Result<U, str> {
-    return match result {
-        Result.Ok(v)  => Result.Ok(f(v)),
-        Result.Err(e) => Result.Err(e)
-    };
-}
-
-fn and_then<T, U>(result: Result<T, str>, f: fn(T) -> Result<U, str>) -> Result<U, str> {
-    return match result {
-        Result.Ok(v)  => f(v),
-        Result.Err(e) => Result.Err(e)
-    };
-}
-
-
-// — Navigation / direction —
-
-fn move_point(p: Point, d: Direction, steps: int) -> Point {
-    return match d {
-        Direction.North => p.translate(0,      steps),
-        Direction.South => p.translate(0,     -steps),
-        Direction.East  => p.translate(steps,   0),
-        Direction.West  => p.translate(-steps,  0)
-    };
-}
-
-fn direction_opposite(d: Direction) -> Direction {
-    return match d {
-        Direction.North => Direction.South,
-        Direction.South => Direction.North,
-        Direction.East  => Direction.West,
-        Direction.West  => Direction.East
-    };
-}
-
-fn walk(start: Point, moves: list<(Direction, int)>) -> list<Point> {
-    var path: list<Point> = [start];
-    var current: Point = start;
-    for (dir, steps) in moves {
-        current = move_point(current, dir, steps);
-        path.push(current);
-    }
-    return path;
-}
-
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MAIN
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-fn main() -> int {
-
-    println("╔═══════════════════════════════════════════════════════╗");
-    println("║     {APP_NAME} Comprehensive Demo  v{VERSION}                ║");
-    println("╚═══════════════════════════════════════════════════════╝");
-
-
-    // ── 1. Strings ───────────────────────────────────────────────
-
-    section("STRING OPERATIONS");
-
-    var s: str = "  Hello, ForgeLang World!  ";
-    println("original    : '{s}'");
-    println("trim        : '{s.trim()}'");
-    println("upper       : '{s.trim().upper()}'");
-    println("reversed    : '{s.trim().reverse()}'");
-    println("slug        : '{slugify("Hello ForgeLang World!")}'");
-    println("title_case  : '{title_case("the quick brown fox")}'");
-    println("truncate    : '{truncate("Hello, ForgeLang World!", 12, "...")}'");
-    println("pad_left    : '{pad_left("42", 6, "0")}'");
-    println("word count  : {count_words("one two   three")}");
-
-    test("trim",          s.trim()                              == "Hello, ForgeLang World!");
-    test("upper",         "hello".upper()                       == "HELLO");
-    test("lower",         "HELLO".lower()                       == "hello");
-    test("reverse",       "abc".reverse()                       == "cba");
-    test("split",         "a,b,c".split(",").length()           == 3);
-    test("join",          ["a","b","c"].join("-")               == "a-b-c");
-    test("contains",      "hello world".contains("world")       == true);
-    test("starts_with",   "ForgeLang".starts_with("Forge")      == true);
-    test("ends_with",     "ForgeLang".ends_with("Lang")         == true);
-    test("slugify",       slugify("Hello ForgeLang!")           == "hello-forgelang");
-    test("title_case",    title_case("the quick brown fox")     == "The Quick Brown Fox");
-    test("truncate",      truncate("Hello!", 4, "…")            == "Hel…");
-    test("pad_left",      pad_left("7", 3, "0")                 == "007");
-    test("pad_right",     pad_right("hi", 5, ".")               == "hi...");
-    test("word_count",    count_words("one two   three")        == 3);
-    test("is_palindrome", is_palindrome("A man a plan a canal Panama") == true);
-    test("greet",         greet("Dev")                          == "Hello, Dev!");
-    test("greet empty",   greet("")                             == "Hello, Stranger!");
-
-
-    // ── 2. Mathematics ───────────────────────────────────────────
-
-    section("MATHEMATICS");
-
-    println("abs(-42)      = {math.abs(-42)}");
-    println("pow(2, 10)    = {math.pow(2, 10)}");
-    println("sqrt(144)     = {math.sqrt(144)}");
-    println("log2(1024)    = {math.log2(1024)}");
-    println("log10(1000)   = {math.log10(1000)}");
-    println("sin(π/2)      = {fmt.f4(math.sin(PI / 2.0))}");
-    println("cos(0)        = {fmt.f4(math.cos(0.0))}");
-    println("floor(3.7)    = {math.floor(3.7)}");
-    println("ceil(3.2)     = {math.ceil(3.2)}");
-    println("round(3.5)    = {math.round(3.5)}");
-    println("gcd(48, 18)   = {math.gcd(48, 18)}");
-    println("lcm(4, 6)     = {math.lcm(4, 6)}");
-    println("5!            = {factorial(5)}");
-    println("fib(10)       = {fib(10)}");
-    println("roman(2024)   = {to_roman(2024)}");
-    println("digital_root(493) = {digital_root(493)}");
-    println("collatz(6)    = {collatz(6)}");
-    println("lerp(0,10,.3) = {lerp_f64(0.0, 10.0, 0.3)}");
-    println("map_range     = {map_range(0.5, 0.0, 1.0, 0.0, 100.0)}");
-
-    test("abs",           math.abs(-42)          == 42);
-    test("pow",           math.pow(2, 10)         == 1024);
-    test("sqrt",          math.sqrt(144)          == 12);
-    test("log2",          math.log2(1024)         == 10);
-    test("log10",         math.log10(1000)        == 3);
-    test("floor",         math.floor(3.9)         == 3);
-    test("ceil",          math.ceil(3.1)          == 4);
-    test("round",         math.round(3.5)         == 4);
-    test("gcd",           math.gcd(48, 18)        == 6);
-    test("lcm",           math.lcm(4, 6)          == 12);
-    test("is_prime",      math.is_prime(17)       == true);
-    test("is_even",       math.is_even(42)        == true);
-    test("factorial",     factorial(5)            == 120);
-    test("fib",           fib(10)                 == 55);
-    test("digital_root",  digital_root(493)       == 7);
-    test("roman",         to_roman(2024)          == "MMXXIV");
-    test("collatz(1)",    collatz(1)              == [1]);
-    test("clamp_int",     clamp_int(15, 0, 10)    == 10);
-    test("lerp_f64",      lerp_f64(0.0, 10.0, 0.5) == 5.0);
-    test("map_range",     map_range(0.5, 0.0, 1.0, 0.0, 100.0) == 50.0);
-
-    benchmark("fib(30)",        fn() { fib(30); });
-    benchmark("fib_memo(30)",   fn() { fib_memo(30); });
-    benchmark("primes_up_to(10000)", fn() { primes_up_to(10000); });
-
-
-    // ── 3. Lists & Higher-Order Functions ────────────────────────
-
-    section("LISTS & HIGHER-ORDER FUNCTIONS");
-
-    var nums: list<int> = list.range(1, 11);   // [1..10]
-
-    var evens:   list<int> = nums.filter(fn(n: int) -> bool { return n % 2 == 0; });
-    var squares: list<int> = nums.map(fn(n: int) -> int { return n * n; });
-    var total:   int       = nums.reduce(0, fn(acc: int, n: int) -> int { return acc + n; });
-
-    println("nums         = {nums}");
-    println("evens        = {evens}");
-    println("squares      = {squares}");
-    println("sum          = {total}");
-    println("running_sum  = {running_sum(nums)}");
-    println("chunked(3)   = {chunk(nums, 3)}");
-    println("rotated(2)   = {rotate(nums, 2)}");
-
-    var nested: list<list<int>> = [[1,2],[3,4],[5,6]];
-    println("flattened    = {flatten(nested)}");
-
-    var words: list<str> = ["apple","banana","avocado","blueberry","cherry"];
-    var by_first: map<str, list<str>> = group_by(words, fn(w: str) -> str {
-        return w.slice(0, 1);
-    });
-    println("grouped      = {by_first}");
-
-    var (lt5, gte5): (list<int>, list<int>) = partition(nums, fn(n: int) -> bool {
-        return n < 5;
-    });
-    println("< 5          = {lt5}");
-    println(">= 5         = {gte5}");
-
-    var zipped = zip([1,2,3], ["a","b","c"]);
-    println("zipped       = {zipped}");
-
-    var deduped: list<int> = deduplicate([1,2,2,3,3,3,4]);
-    println("deduped      = {deduped}");
-
-    test("filter",       evens.length()                    == 5);
-    test("map",          squares.last()                    == 100);
-    test("reduce",       total                             == 55);
-    test("first",        nums.first()                      == 1);
-    test("last",         nums.last()                       == 10);
-    test("length",       nums.length()                     == 10);
-    test("contains",     nums.contains(5)                  == true);
-    test("range",        list.range(1, 4)                  == [1, 2, 3]);
-    test("flatten",      flatten(nested)                   == [1,2,3,4,5,6]);
-    test("chunk",        chunk([1,2,3,4], 2).length()      == 2);
-    test("rotate",       rotate([1,2,3,4], 1)              == [2,3,4,1]);
-    test("partition",    lt5                               == [1,2,3,4]);
-    test("deduplicate",  deduped                           == [1,2,3,4]);
-    test("zip",          zipped.length()                   == 3);
-    test("take_while",   take_while([1,2,3,4,5], fn(n: int) -> bool { return n < 4; }) == [1,2,3]);
-    test("drop_while",   drop_while([1,2,3,4,5], fn(n: int) -> bool { return n < 3; }) == [3,4,5]);
-
-    // Sorting
-    var unsorted: list<int> = [5, 2, 8, 1, 9, 3];
-    var sorted_asc:  list<int> = sort.asc(unsorted);
-    var sorted_desc: list<int> = sort.desc(unsorted);
-    var sorted_custom: list<int> = sort.by(unsorted, fn(a: int, b: int) -> int { return a - b; });
-
-    test("sort asc",    sorted_asc  == [1,2,3,5,8,9]);
-    test("sort desc",   sorted_desc == [9,8,5,3,2,1]);
-    test("sort custom", sorted_custom == sorted_asc);
-
-    // Moving average
-    var prices: list<f64> = [10.0, 11.0, 12.0, 11.0, 13.0, 14.0];
-    var ma3 = moving_average(prices, 3);
-    println("moving_avg(3) = {ma3}");
-    test("moving_avg", ma3.length() == prices.length() - 2);
-
-    // Frequency map
-    var letters: list<str> = ["a","b","a","c","b","a"];
-    var freq = frequency_map(letters);
-    test("frequency", freq.get("a") == 3);
-
-    // compose / pipe
-    var double_then_inc: fn(int) -> int = compose(
-        fn(n: int) -> int { return n + 1; },
-        fn(n: int) -> int { return n * 2; }
-    );
-    test("compose", double_then_inc(5) == 11);
-
-    var pipeline_result: int = pipe(3, [
-        fn(n: int) -> int { return n * 2; },
-        fn(n: int) -> int { return n + 10; },
-        fn(n: int) -> int { return n * n; }
-    ]);
-    test("pipe", pipeline_result == 256);
-
-
-    // ── 4. Generics ──────────────────────────────────────────────
-
-    section("GENERICS");
-
-    test("identity<int>",  identity(42)        == 42);
-    test("identity<str>",  identity("hi")      == "hi");
-
-    var (a, b): (int, str) = swap(1, "one");
-    test("swap", a == "one" && b == 1);
-
-    var s1: Stack<int> = Stack.new();
-    s1.push(1);
-    s1.push(2);
-    s1.push(3);
-
-    test("stack size",   s1.size()           == 3);
-    test("stack peek",   s1.peek()           == Option.Some(3));
-    test("stack pop",    s1.pop()            == Option.Some(3));
-    test("stack size2",  s1.size()           == 2);
-
-    var q1: Queue<str> = Queue.new();
-    q1.enqueue("first");
-    q1.enqueue("second");
-    q1.enqueue("third");
-
-    test("queue size",    q1.size()           == 3);
-    test("queue front",   q1.front()          == Option.Some("first"));
-    test("queue dequeue", q1.dequeue()        == Option.Some("first"));
-    test("queue size2",   q1.size()           == 2);
-
-
-    // ── 5. Enums & Pattern Matching ──────────────────────────────
-
-    section("ENUMS & PATTERN MATCHING");
-
-    // Shape
-    var shapes: list<Shape> = [
-        Shape.Circle(5.0),
-        Shape.Rect(4.0, 6.0),
-        Shape.Triangle(3.0, 8.0)
-    ];
-
-    for shape in shapes {
-        println("{shape_name(shape)}: area={fmt.f2(shape_area(shape))}, perimeter={fmt.f2(shape_perimeter(shape))}");
-    }
-
-    test("circle area",     fmt.f4(shape_area(Shape.Circle(1.0)))     == fmt.f4(PI));
-    test("rect area",       shape_area(Shape.Rect(4.0, 6.0))          == 24.0);
-    test("triangle area",   shape_area(Shape.Triangle(6.0, 4.0))      == 12.0);
-
-    // Color
-    println("\nColor hex:");
-    println("  Red   = {color_to_hex(Color.Red)}");
-    println("  Green = {color_to_hex(Color.Green)}");
-    println("  Blue  = {color_to_hex(Color.Blue)}");
-    println("  Custom(255,128,0) = {color_to_hex(Color.Custom(255, 128, 0))}");
-
-    var blended: Color = color_blend(Color.Red, Color.Blue, 0.5);
-    var (br, bg, bb): (int, int, int) = color_to_rgb(blended);
-    println("  Red→Blue @50% = rgb({br},{bg},{bb})");
-
-    test("color hex red",    color_to_hex(Color.Red)              == "#FF0000");
-    test("color hex custom", color_to_hex(Color.Custom(0,128,255)) == "#0080FF");
-    test("color blend r",    br == 127 || br == 128);
-
-    // Direction / walk
-    var start: Point = Point.origin();
-    var path: list<Point> = walk(start, [
-        (Direction.North, 3),
-        (Direction.East,  4),
-        (Direction.South, 1)
-    ]);
-    println("\nWalk path: {path.map(fn(p: Point) -> str { return p.to_str(); }).join(" → ")}");
-    test("walk length",    path.length()   == 4);
-    test("walk end",       path.last().x   == 4 && path.last().y == 2);
-    test("dir opposite",   direction_opposite(Direction.North) == Direction.South);
-
-    // Result type
-    println("\nResult type:");
-    match safe_divide(10.0, 3.0) {
-        Result.Ok(v)  => println("  10/3 = {fmt.f4(v)}"),
-        Result.Err(e) => println("  Error: {e}")
-    }
-    match safe_divide(10.0, 0.0) {
-        Result.Ok(v)  => println("  10/0 = {v}"),
-        Result.Err(e) => println("  Error: {e}")
-    }
-    test("safe_divide ok",  unwrap_or(safe_divide(10.0, 2.0), 0.0) == 5.0);
-    test("safe_divide err", unwrap_or(safe_divide(1.0,  0.0), -1.0) == -1.0);
-    test("safe_sqrt ok",    unwrap_or(safe_sqrt(16.0), 0.0)  == 4.0);
-    test("safe_sqrt err",   unwrap_or(safe_sqrt(-1.0), -99.0) == -99.0);
-
-    // Result chaining
-    var chained = and_then(safe_sqrt(16.0), fn(v: f64) -> Result<f64, str> {
-        return safe_divide(v, 2.0);
-    });
-    test("result chain", unwrap_or(chained, 0.0) == 2.0);
-
-    // Option
-    var present: Option<int> = Option.Some(42);
-    var absent:  Option<int> = Option.None;
-
-    test("option some", match present { Option.Some(v) => v == 42, Option.None => false });
-    test("option none", match absent  { Option.Some(_) => false,   Option.None => true  });
-
-
-    // ── 6. Classes & Objects ─────────────────────────────────────
-
-    section("CLASSES & OBJECTS");
-
-    // Vector2
-    var v1: Vector2 = Vector2.new(3.0, 4.0);
-    var v2: Vector2 = Vector2.new(1.0, 0.0);
-    var v3: Vector2 = v1.add(v2);
-    var v4: Vector2 = v1.normalize();
-
-    println("v1            = {v1.to_str()}");
-    println("v2            = {v2.to_str()}");
-    println("v1 + v2       = {v3.to_str()}");
-    println("v1 magnitude  = {v1.magnitude()}");
-    println("v1 normalized = {v4.to_str()}");
-    println("v1 · v2       = {v1.dot(v2)}");
-    println("lerp(v1,v2,.5)= {v1.lerp(v2, 0.5).to_str()}");
-
-    test("vec add",       v3.x == 4.0 && v3.y == 4.0);
-    test("vec magnitude", v1.magnitude() == 5.0);
-    test("vec dot",       v1.dot(v2) == 3.0);
-    test("vec normalize", fmt.f4(v4.magnitude()) == "1.0000");
-    test("vec compare",   v1.gt(v2) == true);
-    test("vec lerp",      v1.lerp(v1, 0.5).x == v1.x);
-
-    // User + Serializable
-    var alice: User = User.new("Alice", 28, "alice@forge.lang");
-    alice.add_tag("admin");
-    alice.add_tag("beta-tester");
-    alice.birthday();
-
-    println("\n{alice.to_str()}");
-    println("tags: {alice.tags}");
-    println("json: {alice.to_json()}");
-
-    test("user is_adult",  alice.is_adult()           == true);
-    test("user has_tag",   alice.has_tag("admin")      == true);
-    test("user no_tag",    alice.has_tag("unknown")    == false);
-    test("user json",      alice.to_json().contains("Alice") == true);
-
-    // Counter chaining
-    var ctr: Counter = Counter.new(0, 5, "Score");
-    var final_ctr: Counter = ctr.increment().increment().increment().with_step(10).decrement();
-
-    println("\n{final_ctr.to_str()}");
-    test("counter chain", final_ctr.value == 5);
-
-    // Cat (external implement)
-    var cat: Cat = Cat { name: "Whiskers", lives: 9 };
-    println("\n{cat.to_str()}");
-    test("cat to_str", cat.to_str().contains("Whiskers") == true);
-
-
-    // ── 7. Logger & EventEmitter ─────────────────────────────────
-
-    section("LOGGER & EVENTS");
-
-    var log: Logger = Logger.new("App", LogLevel.Debug);
-    log.info("Application started");
-    log.debug("Loading configuration");
-    log.warn("Config file not found, using defaults");
-    log.error("Failed to connect to database");
-
-    test("logger captures", log.dump().length() == 4);
-
-    log.clear();
-    test("logger clear",    log.dump().length() == 0);
-
-    // EventEmitter
-    var bus: EventEmitter = EventEmitter.new();
-    var received: list<str> = [];
-
-    bus.on("greet", fn(data: str) -> void {
-        received.push("greeted: {data}");
-    });
-    bus.on("greet", fn(data: str) -> void {
-        received.push("also heard: {data}");
-    });
-
-    bus.emit("greet", "world");
-    bus.emit("unknown", "ignored");
-
-    test("emitter fires all", received.length()     == 2);
-    test("emitter data",      received[0]           == "greeted: world");
-
-    bus.off("greet");
-    bus.emit("greet", "again");
-    test("emitter off",       received.length()     == 2);
-
-
-    // ── 8. Control Flow ──────────────────────────────────────────
-
-    section("CONTROL FLOW");
-
-    // if / else-if / else
-    var score: int = 73;
-    var grade: str;
-    if      score >= 90 { grade = "A"; }
-    else if score >= 80 { grade = "B"; }
-    else if score >= 70 { grade = "C"; }
-    else if score >= 60 { grade = "D"; }
-    else                { grade = "F"; }
-    test("grade", grade == "C");
-
-    // match expression
-    var answer: int = 42;
-    var label: str = match answer {
-        0  => "Zero",
-        1  => "One",
-        42 => "The answer",
-        _  => "Something else"
-    };
-    test("match expr", label == "The answer");
-
-    // match on enum with guards
-    var level: LogLevel = LogLevel.Warn;
-    var urgent: bool = match level {
-        LogLevel.Warn  => true,
-        LogLevel.Error => true,
-        _              => false
-    };
-    test("match guard", urgent == true);
-
-    // for + break/continue
-    var sum: int = 0;
-    for n in list.range(1, 101) {
-        if n % 2 != 0 { continue; }
-        if n > 20     { break;    }
-        sum = sum + n;
-    }
-    test("for break/continue", sum == 2+4+6+8+10+12+14+16+18+20);
-
-    // while + nested
-    var matrix_sum: int = 0;
-    var row: int = 0;
-    while row < 3 {
-        var col: int = 0;
-        while col < 3 {
-            matrix_sum = matrix_sum + row * 3 + col;
-            col = col + 1;
-        }
-        row = row + 1;
-    }
-    test("nested while", matrix_sum == 36);
-
-    // Closures capturing outer scope
-    var multiplier: int = 7;
-    var times_seven: fn(int) -> int = fn(n: int) -> int { return n * multiplier; };
-    test("closure capture", times_seven(6) == 42);
-
-    // Tuple destructuring
-    var coords: (int, int) = (10, 20);
-    var (cx, cy): (int, int) = coords;
-    test("tuple destructure", cx == 10 && cy == 20);
-
-    // Destructuring in for
-    var pairs: list<(str, int)> = [("a", 1), ("b", 2), ("c", 3)];
-    var pair_sum: int = 0;
-    for (_, v) in pairs {
-        pair_sum = pair_sum + v;
-    }
-    test("destructure for", pair_sum == 6);
-
-
-    // ── 9. Filesystem ────────────────────────────────────────────
-
+// ═══════════════════════════════════════════════════════════════════════════
+// FILESYSTEM DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn filesystem_demo() {
     section("FILESYSTEM");
 
-    var path: str = "/tmp/forge_demo.txt";
-    fs.write(path, "Hello from ForgeLang!");
+    var cwd: str = env.cwd();
 
-    test("exists",    fs.exists(path)    == true);
-    test("read",      fs.read(path)      == "Hello from ForgeLang!");
-    test("dirname",   fs.dirname(path)   == "/tmp");
-    test("basename",  fs.basename(path)  == "forge_demo.txt");
-    test("ext",       fs.extension(path) == "txt");
-    test("size",      fs.size(path)      > 0);
+    println("Current directory:");
+    println(cwd);
 
-    fs.append(path, "\nLine two.");
-    var content: str = fs.read(path);
-    test("append",    content.contains("Line two.") == true);
+    var files = fs.read_dir(cwd);
 
-    var copy_path: str = "/tmp/forge_demo_copy.txt";
-    fs.copy(path, copy_path);
-    test("copy",      fs.exists(copy_path) == true);
+    println("Files found: {files.length()}");
 
-    fs.remove(path);
-    fs.remove(copy_path);
-    test("removed",   fs.exists(path)      == false);
-    test("removed 2", fs.exists(copy_path) == false);
+    for f in files {
+        var size: int = fs.size(cwd + "/" + f);
+        var info = FileInfo.new(f, size);
+        println(info.to_str());
+    }
+}
 
 
-    // ── 10. Environment ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// ENVIRONMENT DEMO
+// ═══════════════════════════════════════════════════════════════════════════
 
+fn env_demo() {
     section("ENVIRONMENT");
 
-    var cwd:      str = env.cwd();
-    var home:     str = env.home();
-    var hostname: str = env.hostname();
-    var os:       str = env.os();
-    var path_sep: str = env.path_separator();
-    var args:     list<str> = env.args();
-    var pid:      int = env.pid();
+    var user: str = env.get("USER");
+    var shell: str = env.get("SHELL");
+    var home: str = env.get("HOME");
 
-    println("cwd        : {cwd}");
-    println("home       : {home}");
-    println("hostname   : {hostname}");
-    println("os         : {os}");
-    println("path_sep   : '{path_sep}'");
-    println("pid        : {pid}");
-    println("args       : {args}");
-
-    test("cwd",       cwd.length()      > 0);
-    test("home",      home.length()     > 0);
-    test("hostname",  hostname.length() > 0);
-    test("os",        os.length()       > 0);
-    test("pid",       pid               > 0);
+    println("User: " + user);
+    println("Shell: " + shell);
+    println("Home: " + home);
+}
 
 
-    // ── 11. Randomness ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// PROCESS EXECUTION DEMO
+// ═══════════════════════════════════════════════════════════════════════════
 
-    section("RANDOMNESS");
+fn process_demo() {
+    section("PROCESS EXECUTION");
 
-    rand.seed(42);
+    var t1 = ProcessTask.new("echo Hello Forge");
+    var t2 = ProcessTask.new("uname -a");
 
-    var r_int:   int    = rand.int(1, 100);
-    var r_float: f64    = rand.float(0.0, 1.0);
-    var r_bool:  bool   = rand.bool();
-    var r_pick:  str    = rand.pick(["rock","paper","scissors"]);
-    var r_list:  list<int> = list.range(1, 11);
-    rand.shuffle(r_list);
-
-    println("rand int(1,100)      = {r_int}");
-    println("rand float(0,1)      = {fmt.f4(r_float)}");
-    println("rand bool            = {r_bool}");
-    println("rand pick            = {r_pick}");
-    println("shuffled [1..10]     = {r_list}");
-
-    test("rand int range",   r_int >= 1 && r_int <= 100);
-    test("rand float range", r_float >= 0.0 && r_float < 1.0);
-    test("rand shuffle",     sort.asc(r_list) == list.range(1, 11));
-    test("rand pick valid",  ["rock","paper","scissors"].contains(r_pick) == true);
+    t1.run();
+    t2.run();
+}
 
 
-    // ── 12. Matrix Operations ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// PIPELINE STYLE SYSTEM WORK
+// ═══════════════════════════════════════════════════════════════════════════
 
-    section("MATRIX OPERATIONS");
+fn pipeline_demo() {
+    section("SYSTEM PIPELINE");
 
-    var m: Matrix = [
-        [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0],
-        [7.0, 8.0, 9.0]
-    ];
+    println("Counting files in current directory using shell:");
 
-    var mt: Matrix = transpose(m);
+    var cmd: str = "ls | wc -l";
+    var result: str = proc.capture(cmd);
 
-    println("matrix:");
-    for row in m  { println("  {row}"); }
-    println("transposed:");
-    for row in mt { println("  {row}"); }
-
-    test("transpose rows→cols", mt[0][1] == m[1][0]);
-    test("transpose [0][2]",    mt[0][2] == 7.0);
-    test("transpose [2][0]",    mt[2][0] == 3.0);
+    println("File count:");
+    println(result);
+}
 
 
-    // ── Summary ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// MATH DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn math_demo() {
+    section("MATH");
+
+    println("abs(-42) = {math.abs(-42)}");
+    println("sqrt(144) = {math.sqrt(144)}");
+    println("pow(2,10) = {math.pow(2,10)}");
+
+    test("math abs", math.abs(-5) == 5);
+    test("math pow", math.pow(2,5) == 32);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LIST PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn list_demo() {
+    section("LIST PROCESSING");
+
+    var nums = [1,2,3,4,5,6,7,8];
+
+    println("Numbers: {nums}");
+
+    var sum: int = 0;
+
+    for n in nums {
+        sum = sum + n;
+    }
+
+    println("Sum: {sum}");
+
+    test("sum correct", sum == 36);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn main() {
+    println("");
+    println("╔══════════════════════════════════════════════╗");
+    println("║         FORGELANG SYSTEM SHOWCASE           ║");
+    println("║                VERSION " + VERSION + "                 ║");
+    println("╚══════════════════════════════════════════════╝");
+
+    string_demo();
+    math_demo();
+    list_demo();
+    filesystem_demo();
+    env_demo();
+    process_demo();
+    pipeline_demo();
 
     section("RESULTS");
 
-    println("╔═══════════════════════════════════════════════════════╗");
-    println("║  Total:  {pad_left(str(total_tests),  3, " ")}");
-    println("║  Passed: {pad_left(str(passed_tests), 3, " ")}");
-    println("║  Failed: {pad_left(str(failed_tests), 3, " ")}");
-    if failed_tests == 0 {
-        println("║  Status: ALL TESTS PASSED ✓");
-    } else {
-        println("║  Status: {failed_tests} test(s) failed ✗");
-    }
-    println("╚═══════════════════════════════════════════════════════╝");
-
-    return 0;
+    println("Tests passed: {tests_passed}");
+    println("Tests total : {tests_total}");
 }

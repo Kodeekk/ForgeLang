@@ -260,15 +260,9 @@ fn swap<A, B>(a: A, b: B) -> (B, A) {
 
 var (x, y) = swap(1, "one");
 
-// Generic with constraints
-fn sort<T: Comparable<T>>(items: list<T>) -> list<T> {
-    // ...
-}
-
-// Generic with multiple constraints
-fn process<T>(value: T) -> void 
-where T: Displayable + Clone {
-    println(value.to_str());
+// Generic functions work with any type
+fn process<T>(value: T) -> void {
+    // Implementation works for any T
 }
 ```
 

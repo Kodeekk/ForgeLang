@@ -34,13 +34,8 @@ var unit_val: void = ();  // Only one value: ()
 var numbers: list<int> = [1, 2, 3];
 var names: list<str> = ["Alice", "Bob"];
 
-// Maps (hash maps)
-var ages: map<str, int> = map.new();
-ages.set("Alice", 30);
-
-// Sets
-var unique: set<int> = set.new();
-unique.add(1);
+// Object literals (key-value pairs)
+var config = { name: "app", version: 1 };
 
 // Tuples
 var pair: (int, str) = (42, "answer");
