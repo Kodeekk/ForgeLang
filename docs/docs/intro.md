@@ -7,67 +7,85 @@ sidebar_position: 1
 <div className="hero">
   <h1 className="hero__title">ForgeLang</h1>
   <p className="hero__subtitle">
-    A dynamically-typed interpreted language with a focus on simplicity and expressiveness.
-    Build robust applications with elegant syntax and powerful features.
+    A shell-native system orchestration language.
+    Merge high-level expressiveness with deep shell integration.
   </p>
 </div>
 
 <div className="version-badge">
-  <span>Latest Version: 2.0.0</span>
+  <span>Latest Version: 2.0</span>
 </div>
 
 ## What is ForgeLang?
 
-ForgeLang is a modern, dynamically-typed programming language designed for developers who value both simplicity and power. Whether you're building quick scripts, complex applications, or anything in between, ForgeLang provides the tools you need with an intuitive, expressive syntax.
+ForgeLang is an interpreted programming language designed for **system orchestration and environment control**. It fills the gap between shell scripts and full programming languages—more structured than Bash, more system-aware than Python, and faster to iterate than Rust.
+
+```forge
+import [println] from std.io;
+import std.proc;
+import std.env;
+
+fn main() {
+    // Execute shell commands
+    proc.exec("echo Building project...");
+    
+    // Capture output
+    var branch = proc.capture("git branch --show-current");
+    println("On branch: {branch}");
+    
+    // Access environment
+    println("User: {env.get("USER")}");
+}
+```
 
 ### Key Features
 
 <div className="feature-row">
   <div className="card feature-card">
-    <div className="feature-card__icon">🦺</div>
-    <h3 className="feature-card__title">Type Safety</h3>
+    <div className="feature-card__icon">🐚</div>
+    <h3 className="feature-card__title">Shell-Native</h3>
     <p className="feature-card__description">
-      Dynamic typing with optional type annotations. Get flexibility when you need it, safety when you want it.
+      Execute commands, capture output, build pipelines. Shell integration is first-class, not an afterthought.
     </p>
   </div>
-  
+
   <div className="card feature-card">
-    <div className="feature-card__icon">🧬</div>
-    <h3 className="feature-card__title">Generics</h3>
+    <div className="feature-card__icon">📁</div>
+    <h3 className="feature-card__title">System Aware</h3>
     <p className="feature-card__description">
-      Write reusable, type-safe code with powerful generic types and constraints.
+      Filesystem operations, environment variables, process management. Deep OS integration built in.
     </p>
   </div>
-  
+
   <div className="card feature-card">
-    <div className="feature-card__icon">🎯</div>
-    <h3 className="feature-card__title">Pattern Matching</h3>
+    <div className="feature-card__icon">🏗️</div>
+    <h3 className="feature-card__title">Structured Logic</h3>
     <p className="feature-card__description">
-      Exhaustive pattern matching on enums and data structures for clear, bug-free code.
+      Classes, interfaces, pattern matching. Write maintainable code that scales beyond shell scripts.
     </p>
   </div>
-  
+
   <div className="card feature-card">
     <div className="feature-card__icon">📦</div>
     <h3 className="feature-card__title">Rich Stdlib</h3>
     <p className="feature-card__description">
-      Comprehensive standard library with I/O, collections, math, filesystem, and more.
+      Process execution, filesystem, environment, strings, collections. Everything for system automation.
     </p>
   </div>
-  
-  <div className="card feature-card">
-    <div className="feature-card__icon">🏗️</div>
-    <h3 className="feature-card__title">Classes & Interfaces</h3>
-    <p className="feature-card__description">
-      Object-oriented features with classes, interfaces, and implementation inheritance.
-    </p>
-  </div>
-  
+
   <div className="card feature-card">
     <div className="feature-card__icon">⚡</div>
-    <h3 className="feature-card__title">Fast Development</h3>
+    <h3 className="feature-card__title">Interpreted</h3>
     <p className="feature-card__description">
-      Quick iteration with an interpreted runtime and helpful error messages.
+      Fast iteration with no compilation step. Run scripts directly with `fl script.fl`.
+    </p>
+  </div>
+
+  <div className="card feature-card">
+    <div className="feature-card__icon">🔧</div>
+    <h3 className="feature-card__title">DevOps Ready</h3>
+    <p className="feature-card__description">
+      Deploy scripts, automation tools, CLI utilities. Built for real-world system tasks.
     </p>
   </div>
 </div>
@@ -75,76 +93,87 @@ ForgeLang is a modern, dynamically-typed programming language designed for devel
 ## Quick Example
 
 ```forge
-module hello;
+module deploy;
 
 import [println] from std.io;
-import std.math;
+import std.proc;
+import std.fs;
+import std.env;
 
-// Define an enum with associated data
-enum Shape {
-    Circle(radius: f64),
-    Rect(width: f64, height: f64)
-}
+// Class for deployment tasks
+class Deployer {
+    var app_name: str;
+    var deploy_dir: str;
 
-// Pattern matching with exhaustive cases
-fn area(s: Shape) -> f64 {
-    return match s {
-        Shape.Circle(r) => math.PI * r * r,
-        Shape.Rect(w, h) => w * h
-    };
-}
-
-// Generic class with interface implementation
-class Stack<T> {
-    var items: list<T>;
-    
-    fn new() -> Stack<T> {
-        return Stack { items: [] };
+    fn new(name: str, dir: str) -> Deployer {
+        return Deployer { app_name: name, deploy_dir: dir };
     }
-    
-    fn push(self, item: T) -> void {
-        self.items.push(item);
+
+    fn build(self) -> int {
+        println("Building {self.app_name}...");
+        return proc.exec("make build");
     }
-    
-    fn pop(self) -> Option<T> {
-        if self.items.length() == 0 { return Option.None; }
-        var top: T = self.items.last();
-        self.items.pop();
-        return Option.Some(top);
+
+    fn test(self) -> int {
+        println("Running tests...");
+        return proc.exec("make test");
+    }
+
+    fn deploy(self) -> int {
+        println("Deploying to {self.deploy_dir}...");
+        proc.exec("sudo systemctl restart {self.app_name}");
+        return 0;
     }
 }
 
 fn main() -> int {
-    var shapes = [
-        Shape.Circle(5.0),
-        Shape.Rect(4.0, 6.0)
-    ];
+    var deployer = Deployer.new("myapp", "/var/www");
     
-    for shape in shapes {
-        println("Area: {area(shape)}");
+    // Build
+    if deployer.build() != 0 {
+        println("Build failed!");
+        return 1;
     }
     
-    // Using generics
-    var stack: Stack<int> = Stack.new();
-    stack.push(1);
-    stack.push(2);
-    stack.push(3);
-    
-    while !stack.items.is_empty() {
-        println("Popped: {stack.pop()}");
+    // Test
+    if deployer.test() != 0 {
+        println("Tests failed!");
+        return 1;
     }
     
+    // Deploy
+    deployer.deploy();
+    
+    println("Deployment complete!");
     return 0;
 }
 ```
 
+## Use Cases
+
+### System Automation
+Replace complex shell scripts with structured, maintainable ForgeLang code.
+
+### DevOps Tooling
+Build deployment scripts, monitoring tools, and infrastructure automation.
+
+### CLI Utilities
+Create command-line tools with clean syntax and robust error handling.
+
+### Process Orchestration
+Chain commands, manage pipelines, and coordinate multiple processes.
+
+### Configuration Management
+Environment-aware setups with filesystem and variable manipulation.
+
 ## Getting Started
 
-Ready to start building with ForgeLang? Here's how to get up and running:
+Ready to start building with ForgeLang?
 
 1. **[Installation](./installation)** - Install ForgeLang on your system
 2. **[Quick Start](./quick-start)** - Write your first ForgeLang program
 3. **[Language Guide](./language-guide/overview)** - Learn the language features
+4. **[Standard Library](./stdlib/overview)** - Explore available modules
 
 ## Community
 

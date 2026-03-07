@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Quick Start
 
-Get up and running with ForgeLang in minutes. This guide will walk you through writing and running your first programs.
+Get up and running with ForgeLang in minutes. This guide will walk you through writing and running your first system automation scripts.
 
 ## Your First Program
 
@@ -32,42 +32,57 @@ Output:
 Hello, ForgeLang!
 ```
 
-## Using the Package Manager
+## Shell Integration Basics
 
-For larger projects, use `maul`, the ForgeLang package manager.
+ForgeLang's power comes from its seamless shell integration.
 
-### Create a New Project
+### Execute Commands
 
-```bash
-maul new my_project
-cd my_project
+```forge
+module sysinfo;
+
+import [println] from std.io;
+import std.proc;
+
+fn main() {
+    // Run a command, get exit code
+    var exit_code = proc.exec("echo Hello from shell!");
+    println("Exit code: {exit_code}");
+}
 ```
 
-This creates the following structure:
+### Capture Output
 
-```
-my_project/
-├── maul.yaml          # Project manifest
-├── src/
-│   └── main.fl        # Entry point
-└── .gitignore
-```
+```forge
+module filecount;
 
-### Project Manifest
+import [println] from std.io;
+import std.proc;
 
-The `maul.yaml` file defines your project:
-
-```yaml
-package:
-  name: "my_project"
-  version: "0.1.0"
-  entry: "src/main.fl"
+fn main() {
+    // Capture command output
+    var count = proc.capture("ls -1 | wc -l");
+    println("Files in directory: {count}");
+}
 ```
 
-### Run Your Project
+### Environment Variables
 
-```bash
-maul run
+```forge
+module userinfo;
+
+import [println] from std.io;
+import std.env;
+
+fn main() {
+    var user = env.get("USER");
+    var home = env.get("HOME");
+    var shell = env.get("SHELL");
+    
+    println("User: {user}");
+    println("Home: {home}");
+    println("Shell: {shell}");
+}
 ```
 
 ## Language Basics
@@ -76,8 +91,8 @@ maul run
 
 ```forge
 // Immutable constants
-const PI: f64 = 3.14159;
-const NAME: str = "ForgeLang";
+const VERSION: str = "2.0";
+const MAX_RETRIES: int = 3;
 
 // Mutable variables
 var count: int = 0;
@@ -85,7 +100,7 @@ count = count + 1;
 
 // Type inference
 var message = "Hello";  // Inferred as str
-var number = 42;        // Inferred as int
+var numbers = [1, 2, 3]; // Inferred as list<int>
 ```
 
 ### Functions
@@ -96,15 +111,14 @@ fn greet(name: str) -> str {
     return "Hello, {name}!";
 }
 
-// Function with multiple parameters
-fn add(a: int, b: int) -> int {
-    return a + b;
+// Function with shell command
+fn get_git_branch() -> str {
+    return proc.capture("git branch --show-current");
 }
 
-// Function without return value
-fn print_twice(msg: str) -> void {
-    println(msg);
-    println(msg);
+// Function returning exit code
+fn run_build() -> int {
+    return proc.exec("make build");
 }
 ```
 
@@ -112,97 +126,227 @@ fn print_twice(msg: str) -> void {
 
 ```forge
 // If/else
-var score: int = 85;
-if score >= 90 {
-    println("A");
-} else if score >= 80 {
-    println("B");
-} else {
-    println("C");
+var exit_code = proc.exec("make test");
+if exit_code != 0 {
+    println("Tests failed!");
+    return 1;
 }
 
-// Match expression (pattern matching)
-enum Color { Red, Green, Blue }
-var c = Color.Red;
+// Match expression
+enum Status { Ok, Err(msg: str) }
 
-match c {
-    Color.Red => println("Red!"),
-    Color.Green => println("Green!"),
-    Color.Blue => println("Blue!")
+match get_status() {
+    Status.Ok => println("Success!"),
+    Status.Err(msg) => println("Error: {msg}")
 }
 
 // For loop
-for i in list.range(0, 5) {
-    println("Count: {i}");
+var files = proc.capture("ls -1").split("\n");
+for file in files {
+    println("File: {file}");
 }
 
 // While loop
-var n: int = 10;
-while n > 0 {
-    println(n);
-    n = n - 1;
+var retries: int = 0;
+while retries < 3 {
+    if proc.exec("curl -s http://api.example.com/health") == 0 {
+        break;
+    }
+    retries = retries + 1;
 }
-```
-
-### Collections
-
-```forge
-// Lists
-var numbers: list<int> = [1, 2, 3, 4, 5];
-numbers.push(6);
-var first = numbers[0];
-
-// Maps
-var ages: map<str, int> = map.new();
-ages.set("Alice", 30);
-ages.set("Bob", 25);
-var alice_age = ages.get("Alice");
-
-// Sets
-var unique: set<int> = set.new();
-unique.add(1);
-unique.add(2);
-unique.add(1);  // Duplicate, ignored
 ```
 
 ### String Interpolation
 
 ```forge
-var name = "Alice";
-var age = 30;
+var name = "myapp";
+var port = 8080;
 
 // String interpolation with {}
-println("My name is {name} and I'm {age} years old");
+println("Starting {name} on port {port}");
 
 // Expressions in strings
-println("Next year I'll be {age + 1}");
+println("Next port will be {port + 1}");
 ```
 
-## Standard Library
+## Practical Examples
 
-ForgeLang includes a rich standard library:
+### Example 1: Log Analyzer
 
 ```forge
-import [println, read_line] from std.io;
-import std.math;
-import std.list;
-import std.str;
+module log_analyzer;
+
+import [println] from std.io;
+import std.fs;
+
+fn analyze_logs(path: str) {
+    var content = fs.read(path);
+    var lines = content.split("\n");
+    
+    var error_count = 0;
+    for line in lines {
+        if line.contains("ERROR") {
+            error_count = error_count + 1;
+            println("  {line}");
+        }
+    }
+    
+    println("Total errors: {error_count}");
+}
+
+fn main() {
+    analyze_logs("/var/log/app.log");
+}
+```
+
+### Example 2: Deployment Script
+
+```forge
+module deploy;
+
+import [println] from std.io;
+import std.proc;
+
+fn deploy() -> int {
+    println("Starting deployment...");
+    
+    // Build
+    println("Building...");
+    if proc.exec("make build") != 0 {
+        println("Build failed!");
+        return 1;
+    }
+    
+    // Test
+    println("Testing...");
+    if proc.exec("make test") != 0 {
+        println("Tests failed!");
+        return 1;
+    }
+    
+    // Deploy
+    println("Deploying...");
+    proc.exec("sudo systemctl restart myapp");
+    
+    println("Deployment complete!");
+    return 0;
+}
 
 fn main() -> int {
-    // Math
-    println(math.sqrt(144));      // 12
-    println(math.pow(2, 10));     // 1024
-    println(math.abs(-42));       // 42
+    return deploy();
+}
+```
+
+### Example 3: System Monitor
+
+```forge
+module monitor;
+
+import [println] from std.io;
+import std.proc;
+import std.env;
+
+fn check_disk_usage(threshold: int) {
+    var usage_str = proc.capture("df -h / | tail -1 | awk '{print $5}'");
+    var usage = usage_str.replace("%", "").to_int();
+    
+    if usage > threshold {
+        println("WARNING: Disk at {usage}%");
+    } else {
+        println("Disk OK: {usage}%");
+    }
+}
+
+fn check_services() {
+    var services = ["nginx", "postgres", "redis"];
+    
+    for service in services {
+        var status = proc.capture("systemctl is-active {service}");
+        if status == "active" {
+            println("{service}: running");
+        } else {
+            println("{service}: DOWN!");
+        }
+    }
+}
+
+fn main() {
+    check_disk_usage(80);
+    check_services();
+}
+```
+
+### Example 4: Git Utilities
+
+```forge
+module git_utils;
+
+import [println] from std.io;
+import std.proc;
+import std.env;
+
+fn git_status() {
+    println("=== Git Status ===");
+    println(proc.capture("git status"));
+}
+
+fn git_branch_info() {
+    var branch = proc.capture("git branch --show-current");
+    var commits = proc.capture("git rev-list --count HEAD");
+    
+    println("Branch: {branch}");
+    println("Commits: {commits}");
+}
+
+fn git_recent() {
+    println("=== Recent Commits ===");
+    println(proc.capture("git log --oneline -5"));
+}
+
+fn main() {
+    git_status();
+    git_branch_info();
+    git_recent();
+}
+```
+
+## Standard Library Overview
+
+ForgeLang includes a rich standard library for system tasks:
+
+```forge
+import [println] from std.io;
+import std.proc;
+import std.fs;
+import std.env;
+import std.str;
+import std.list;
+import std.math;
+
+fn main() -> int {
+    // Process execution
+    proc.exec("echo Hello");
+    var output = proc.capture("ls -1");
+    
+    // Filesystem
+    var content = fs.read("file.txt");
+    fs.write("output.txt", content);
+    var exists = fs.exists("config.yaml");
+    
+    // Environment
+    var home = env.get("HOME");
+    var cwd = env.cwd();
+    
+    // String operations
+    var trimmed = "  hello  ".trim();
+    var upper = "hello".upper();
     
     // List operations
     var nums = [1, 2, 3, 4, 5];
-    var sum = list.sum(nums);     // 15
-    var evens = list.filter(nums, fn(n) { return n % 2 == 0; });
+    var sum = list.sum(nums);
     
-    // String operations
-    var s = "  Hello  ";
-    println(s.trim());            // "Hello"
-    println(s.upper());           // "  HELLO  "
+    // Math
+    var result = math.sqrt(144);
     
     return 0;
 }
@@ -239,19 +383,19 @@ fn find_first(list: list<int>, target: int) -> Option<int> {
 ## Next Steps
 
 - **[Language Guide](./language-guide/overview)** - Comprehensive language features
-- **[Standard Library](./stdlib/overview)** - Explore the stdlib
-- **[Examples](/examples)** - Real-world code examples
+- **[Standard Library](./stdlib/overview)** - Explore the stdlib modules
+- **[Examples](./examples)** - Real-world automation scripts
 
 ## Try It Yourself
 
-Experiment with ForgeLang by modifying the examples above. The best way to learn is by writing code!
+Experiment with ForgeLang by creating automation scripts:
 
 ```bash
 # Create a test file
-echo 'println("Your code here")' > test.fl
+echo 'println(proc.capture("uname -a"))' > test.fl
 
 # Run it
 fl test.fl
 ```
 
-Happy coding! 🚀
+Happy automating! 🚀
