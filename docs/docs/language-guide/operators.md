@@ -190,25 +190,25 @@ var combined = [1, 2] + [3, 4];  // [1, 2, 3, 4]
 var has_two = nums.contains(2);  // true
 ```
 
-## Map Operators
+## Object Literals
 
-Operations on maps:
+ForgeLang supports object literals (maps) using brace syntax:
 
 ```forge
-var ages: map<str, int> = map.new();
+// Create object literal
+var config = { name: "myapp", version: "1.0", port: 8080 };
 
-// Set value
-ages.set("Alice", 30);
+// Access property
+println(config.name);  // "myapp"
 
-// Get value
-var alice_age = ages.get("Alice");  // 30
+// Modify property
+config.port = 9000;
 
-// Check existence
-var has_alice = ages.has("Alice");  // true
-
-// Delete
-ages.delete("Alice");
+// Object literals are often used for configuration
+// and simple data structures
 ```
+
+Note: For advanced map operations, use the built-in map literal syntax or create classes for structured data.
 
 ## Operator Precedence
 

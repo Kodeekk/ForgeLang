@@ -152,17 +152,9 @@ var numbers: list<int> = [1, 2, 3, 4, 5];
 numbers.push(6);
 var first = numbers[0];
 
-// Maps
-var ages: map<str, int> = map.new();
-ages.set("Alice", 30);
-ages.set("Bob", 25);
-var alice_age = ages.get("Alice");
-
-// Sets
-var unique: set<int> = set.new();
-unique.add(1);
-unique.add(2);
-unique.add(1);  // Duplicate, ignored
+// Maps (using object literals)
+var config = { name: "myapp", version: "1.0" };
+println(config.name);  // "myapp"
 ```
 
 ### String Interpolation

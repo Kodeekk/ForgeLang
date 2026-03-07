@@ -74,9 +74,6 @@ class Stack<T> {
     fn push(self, item: T) -> void { ... }
     fn pop(self) -> Option<T> { ... }
 }
-
-// Constrained generics
-fn sort<T: Comparable<T>>(items: list<T>) -> list<T> { ... }
 ```
 
 ### 4. Interfaces Without Boilerplate
