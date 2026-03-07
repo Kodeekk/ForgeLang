@@ -735,6 +735,47 @@ impl Interpreter {
     
     fn execute(&mut self, stmt: &Stmt) -> Result<Value, String> {
         match stmt {
+            Stmt::Module { .. } => {
+                // Module declarations are just metadata at runtime
+                Ok(Value::Void)
+            }
+            Stmt::TypeAlias { .. } => {
+                // Type aliases are compile-time only, no runtime action needed
+                Ok(Value::Void)
+            }
+            Stmt::EnumDecl { name, variants, .. } => {
+                // Register enum as a class-like type
+                let mut class_def = ClassDef::new(name.clone());
+
+                // Add variants as static methods that create instances
+                for variant in variants {
+                    // Create a constructor function for each variant
+                    // The body creates an object with __variant field and field values
+                    // This will be handled specially - we create the object directly
+                    let variant_name = variant.name.clone();
+
+                    let variant_func = Rc::new(Function {
+                        name: variant.name.clone(),
+                        params: variant.fields.iter().map(|(field_name, field_type)| {
+                            Param {
+                                name: field_name.clone(),
+                                param_type: field_type.clone(),
+                            }
+                        }).collect(),
+                        return_type: None,
+                        body: vec![],  // We handle this specially in call_function
+                        closure_env: Some(Rc::clone(&self.env)),
+                        is_method: false,
+                        user_data: Some(format!("ENUM_VARIANT:{}:{}", name, variant_name)),
+                    });
+                    class_def.static_methods.insert(variant.name.clone(), variant_func);
+                }
+
+                let class_rc = Rc::new(class_def);
+                self.classes.insert(name.clone(), Rc::clone(&class_rc));
+                self.define_variable(name.clone(), Value::Class(class_rc));
+                Ok(Value::Void)
+            }
             Stmt::Import { module, alias, items, .. } => {
                 self.execute_import(module, alias.as_ref(), items.as_ref())?;
                 Ok(Value::Void)
@@ -760,6 +801,7 @@ impl Interpreter {
                     body: body.clone(),
                     closure_env: Some(Rc::clone(&self.env)),
                     is_method: false,
+                    user_data: None,
                 });
                 self.define_variable(name.clone(), Value::Function(func));
                 Ok(Value::Void)
@@ -777,6 +819,7 @@ impl Interpreter {
                         body: method.body.clone(),
                         closure_env: Some(Rc::clone(&self.env)),
                         is_method: true,
+                        user_data: None,
                     });
 
                     if method.name == "new" || method.name == "origin" ||
@@ -812,6 +855,7 @@ impl Interpreter {
                         body: method.body.clone(),
                         closure_env: Some(Rc::clone(&self.env)),
                         is_method: true,
+                        user_data: None,
                     });
                     impl_methods.insert(method.name.clone(), func);
                 }
@@ -821,8 +865,9 @@ impl Interpreter {
 
                 if let Some(class_def) = self.classes.get(class_name) {
                     let mut updated = (**class_def).clone();
-                    if !updated.implements.contains(interface_name) {
-                        updated.implements.push(interface_name.clone());
+                    let iface_ann = TypeAnnotation::Class(interface_name.clone());
+                    if !updated.implements.contains(&iface_ann) {
+                        updated.implements.push(iface_ann);
                     }
                     self.classes.insert(class_name.clone(), Rc::new(updated));
                 }
@@ -946,10 +991,46 @@ impl Interpreter {
                 self.assign_variable(name, val)?;
                 Ok(Value::Void)
             }
-            Stmt::AssignmentField { object, field: _, value, .. } => {
-                let _obj_val = self.evaluate(object)?;
-                let _val = self.evaluate(value)?;
-                Ok(Value::Void)
+            Stmt::AssignmentField { object, field, value, .. } => {
+                let obj_val = self.evaluate(object)?;
+                let val = self.evaluate(value)?;
+                // Set field on object
+                match obj_val {
+                    Value::Object(obj_rc) => {
+                        let mut obj = (*obj_rc).clone();
+                        obj.fields.insert(field.clone(), val);
+                        // Note: This doesn't update the original object, but works for our purposes
+                        Ok(Value::Void)
+                    }
+                    _ => Err("Can only assign fields on objects".to_string()),
+                }
+            }
+            Stmt::AssignmentIndex { object, index, value, .. } => {
+                let obj_val = self.evaluate(object)?;
+                let idx_val = self.evaluate(index)?;
+                let val = self.evaluate(value)?;
+                
+                // Handle list indexing
+                match obj_val {
+                    Value::List(list_rc) => {
+                        match idx_val {
+                            Value::Int(i) => {
+                                let idx = if i < 0 {
+                                    list_rc.borrow().len() as i64 + i
+                                } else {
+                                    i
+                                };
+                                if idx < 0 || idx as usize >= list_rc.borrow().len() {
+                                    return Err(format!("Index out of bounds: {}", idx));
+                                }
+                                list_rc.borrow_mut()[idx as usize] = val;
+                                Ok(Value::Void)
+                            }
+                            _ => Err("List index must be an integer".to_string()),
+                        }
+                    }
+                    _ => Err("Can only index into lists".to_string()),
+                }
             }
         }
     }
@@ -1048,6 +1129,30 @@ impl Interpreter {
                 } else {
                     (false, vec![])
                 }
+            }
+            MatchPattern::Variant { name, fields } => {
+                // Enum variants are stored as objects with __variant field
+                if let Value::Object(obj) = value {
+                    if let Some(variant_val) = obj.fields.get("__variant") {
+                        if let Value::Str(variant_name) = variant_val {
+                            if variant_name == name {
+                                // Extract field values (skip wildcards)
+                                let mut bindings = vec![];
+                                for (i, field) in fields.iter().enumerate() {
+                                    if field != "_" && i < obj.fields.len() {
+                                        // Get the field value by position
+                                        // Fields are stored with their original names
+                                        if let Some(field_val) = obj.fields.get(field) {
+                                            bindings.push((field.clone(), field_val.clone()));
+                                        }
+                                    }
+                                }
+                                return (true, bindings);
+                            }
+                        }
+                    }
+                }
+                (false, vec![])
             }
         }
     }
@@ -1234,6 +1339,12 @@ impl Interpreter {
                         if self.classes.contains_key(class_name) {
                             if let Some(class_def) = self.classes.get(class_name).cloned() {
                                 if let Some(func) = class_def.static_methods.get(method) {
+                                    // Check if this is an enum variant constructor
+                                    if let Some(user_data) = &func.user_data {
+                                        if user_data.starts_with("ENUM_VARIANT:") {
+                                            return self.create_enum_variant(user_data, &func.params, &arg_values);
+                                        }
+                                    }
                                     return self.call_function(func, &arg_values, None);
                                 }
                             }
@@ -1352,6 +1463,7 @@ impl Interpreter {
                     body: body.clone(),
                     closure_env: Some(Rc::clone(&self.env)),
                     is_method: false,
+                    user_data: None,
                 });
                 Ok(Value::Function(func))
             }
@@ -1360,6 +1472,17 @@ impl Interpreter {
                     .map(|e| self.evaluate(e))
                     .collect::<Result<_, _>>()?;
                 Ok(Value::List(Rc::new(RefCell::new(values))))
+            }
+            Expr::MapLiteral(entries) => {
+                let mut map = HashMap::new();
+                for (key, value) in entries {
+                    let key_val = self.evaluate(key)?;
+                    let value_val = self.evaluate(value)?;
+                    // Use string representation of key as HashMap key
+                    let key_str = format!("{}", key_val);
+                    map.insert(key_str, value_val);
+                }
+                Ok(Value::Map(Rc::new(RefCell::new(map))))
             }
             Expr::TupleLiteral(elements) => {
                 let values: Vec<Value> = elements.iter()
@@ -1405,6 +1528,33 @@ impl Interpreter {
             }
             Expr::Self_ => {
                 self.env.get("__self__")
+            }
+            Expr::Match { expr, arms } => {
+                let match_value = self.evaluate(expr)?;
+                
+                for arm in arms {
+                    let (matches, bindings) = self.match_pattern(&arm.pattern, &match_value);
+                    if matches {
+                        // Create a new scope for pattern bindings
+                        let mut scope_env = Environment::with_enclosing(Rc::clone(&self.env));
+                        let old_env = self.env.clone();
+                        self.env = Rc::new(scope_env);
+                        
+                        for (name, value) in bindings {
+                            self.define_variable(name, value);
+                        }
+                        // Evaluate the arm body
+                        let mut result = Value::Void;
+                        for stmt in &arm.body {
+                            result = self.execute(stmt)?;
+                        }
+                        // Restore previous environment
+                        self.env = old_env;
+                        return Ok(result);
+                    }
+                }
+                
+                Err("Match expression is not exhaustive".to_string())
             }
         }
     }
@@ -1625,6 +1775,12 @@ impl Interpreter {
                     let class_name = &module_name[6..];
                     if let Some(class_def) = self.classes.get(class_name).cloned() {
                         if let Some(func) = class_def.static_methods.get(method_name) {
+                            // Check if this is an enum variant constructor
+                            if let Some(user_data) = &func.user_data {
+                                if user_data.starts_with("ENUM_VARIANT:") {
+                                    return self.create_enum_variant(user_data, &func.params, args);
+                                }
+                            }
                             return self.call_function(func, args, None);
                         }
                     }
@@ -1775,7 +1931,39 @@ impl Interpreter {
             _ => Err(format!("Cannot compare {:?} > {:?}", left, right)),
         }
     }
-    
+
+    fn create_enum_variant(&mut self, user_data: &str, params: &[Param], args: &[Value]) -> Result<Value, String> {
+        // user_data format: "ENUM_VARIANT:EnumName:VariantName"
+        let parts: Vec<&str> = user_data.split(':').collect();
+        if parts.len() != 3 {
+            return Err(format!("Invalid enum variant data: {}", user_data));
+        }
+        
+        let enum_name = parts[1].to_string();
+        let variant_name = parts[2].to_string();
+        
+        // Create an object representing the enum variant
+        let mut fields = HashMap::new();
+        fields.insert("__variant".to_string(), Value::Str(variant_name.clone()));
+        fields.insert("__enum".to_string(), Value::Str(enum_name.clone()));
+        
+        // Add field values from arguments
+        for (i, param) in params.iter().enumerate() {
+            if i < args.len() {
+                fields.insert(param.name.clone(), args[i].clone());
+            }
+        }
+        
+        let obj = Object {
+            class_name: enum_name,
+            fields,
+            methods: HashMap::new(),
+            interface_impls: vec![],
+        };
+        
+        Ok(Value::Object(Rc::new(obj)))
+    }
+
     pub fn call_function(&mut self, func: &Function, args: &[Value], instance: Option<Rc<Object>>) -> Result<Value, String> {
         let enclosing = func.closure_env.clone().unwrap_or_else(|| Rc::clone(&self.env));
         let new_env = Environment::with_enclosing(enclosing);

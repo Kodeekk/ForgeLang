@@ -14,6 +14,7 @@ pub enum Value {
     Bool(bool),
     Void,
     List(Rc<RefCell<Vec<Value>>>),
+    Map(Rc<RefCell<HashMap<String, Value>>>),
     Object(Rc<Object>),
     Class(Rc<ClassDef>),
     Function(Rc<Function>),
@@ -66,6 +67,10 @@ impl fmt::Display for Value {
                 let items: Vec<String> = list.borrow().iter().map(|v| format!("{}", v)).collect();
                 write!(f, "[{}]", items.join(", "))
             }
+            Value::Map(map) => {
+                let items: Vec<String> = map.borrow().iter().map(|(k, v)| format!("{}: {}", k, v)).collect();
+                write!(f, "{{{}}}", items.join(", "))
+            }
             Value::Object(obj) => write!(f, "{}", obj),
             Value::Class(cls) => write!(f, "class {}", cls.name),
             Value::Function(_) => write!(f, "fn"),
@@ -86,7 +91,7 @@ pub struct Object {
     pub class_name: String,
     pub fields: HashMap<String, Value>,
     pub methods: HashMap<String, Rc<Function>>,
-    pub interface_impls: Vec<String>,
+    pub interface_impls: Vec<TypeAnnotation>,
 }
 
 impl fmt::Display for Object {
@@ -112,7 +117,7 @@ pub struct ClassDef {
     pub fields: Vec<Field>,
     pub methods: HashMap<String, Rc<Function>>,
     pub static_methods: HashMap<String, Rc<Function>>,
-    pub implements: Vec<String>,
+    pub implements: Vec<TypeAnnotation>,
 }
 
 impl ClassDef {
@@ -141,10 +146,11 @@ pub struct Function {
     pub body: Vec<Stmt>,
     pub closure_env: Option<Rc<Environment>>,
     pub is_method: bool,
+    pub user_data: Option<String>,  // For special handling (e.g., enum variants)
 }
 
 impl Function {
-    pub fn new(name: String, params: Vec<Param>, return_type: Option<TypeAnnotation>, 
+    pub fn new(name: String, params: Vec<Param>, return_type: Option<TypeAnnotation>,
                body: Vec<Stmt>, is_method: bool) -> Self {
         Function {
             name,
@@ -153,6 +159,7 @@ impl Function {
             body,
             closure_env: None,
             is_method,
+            user_data: None,
         }
     }
 }

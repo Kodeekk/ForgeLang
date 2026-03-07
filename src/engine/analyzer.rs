@@ -169,6 +169,23 @@ impl ScopeAnalyzer {
                        "Point" | "Rectangle" | "Counter" | "User" | "Cat")
     }
 
+    /// Get the name from a TypeAnnotation (for error messages, etc.)
+    fn get_type_name(&self, ann: &TypeAnnotation) -> String {
+        match ann {
+            TypeAnnotation::Int => "int".to_string(),
+            TypeAnnotation::Float => "float".to_string(),
+            TypeAnnotation::Str => "str".to_string(),
+            TypeAnnotation::Bool => "bool".to_string(),
+            TypeAnnotation::Void => "void".to_string(),
+            TypeAnnotation::List(inner) => format!("list<{}>", self.get_type_name(inner)),
+            TypeAnnotation::Class(name) => name.clone(),
+            TypeAnnotation::GenericClass(name, _) => name.clone(),
+            TypeAnnotation::Fn(_, _) => "fn".to_string(),
+            TypeAnnotation::Tuple(_) => "tuple".to_string(),
+            TypeAnnotation::Self_ => "Self".to_string(),
+        }
+    }
+
     pub fn analyze(mut self, program: &Program) -> Result<(), ErrorReport> {
         // First pass: collect all top-level definitions and check for duplicates
         for stmt in &program.statements {
@@ -218,6 +235,15 @@ impl ScopeAnalyzer {
 
     fn analyze_stmt(&mut self, stmt: &Stmt) {
         match stmt {
+            Stmt::Module { .. } => {
+                // Module declarations are just metadata, no analysis needed
+            }
+            Stmt::TypeAlias { .. } => {
+                // Type aliases are resolved at compile time, no runtime analysis needed
+            }
+            Stmt::EnumDecl { .. } => {
+                // Enums will be analyzed when their variants are used
+            }
             Stmt::VarDecl { pattern, var_type, initializer, location } => {
                 if let Some(init) = initializer {
                     let init_type = self.infer_expr_type(init);
@@ -265,7 +291,7 @@ impl ScopeAnalyzer {
                 }
                 self.define_var(name, val_type);
             }
-            Stmt::FnDecl { name: _, params, return_type, body, location: _ } => {
+            Stmt::FnDecl { name: _, type_params: _, params, return_type, body, location: _ } => {
                 self.push_scope();
                 // Add parameters to scope
                 for param in params {
@@ -285,10 +311,11 @@ impl ScopeAnalyzer {
             Stmt::ClassDecl { name: _, fields: _, methods, implements, .. } => {
                 // Validate implemented interfaces
                 for iface in implements {
-                    if !self.interfaces.contains(iface) && !self.is_builtin(iface) {
+                    let iface_name = self.get_type_name(iface);
+                    if !self.interfaces.contains(&iface_name) && !self.is_builtin(&iface_name) {
                         self.errors.error(
                             CompileError::semantic_error(codes::UNDEFINED_MEMBER,
-                                format!("Interface '{}' is not defined", iface))
+                                format!("Interface '{}' is not defined", iface_name))
                         );
                     }
                 }
@@ -470,6 +497,11 @@ impl ScopeAnalyzer {
                 self.analyze_expr(object);
                 self.analyze_expr(value);
             }
+            Stmt::AssignmentIndex { object, index, value, .. } => {
+                self.analyze_expr(object);
+                self.analyze_expr(index);
+                self.analyze_expr(value);
+            }
             Stmt::Import { module, items, .. } => {
                 // Validate module exists (basic check for std modules)
                 if !module.starts_with("std.") {
@@ -537,6 +569,12 @@ impl ScopeAnalyzer {
                 self.analyze_expr(object);
                 self.analyze_expr(index);
             }
+            Expr::MapLiteral(entries) => {
+                for (key, value) in entries {
+                    self.analyze_expr(key);
+                    self.analyze_expr(value);
+                }
+            }
             Expr::Lambda { params, body, .. } => {
                 self.push_scope();
                 for param in params {
@@ -585,6 +623,38 @@ impl ScopeAnalyzer {
                         CompileError::semantic_error(codes::SELF_OUTSIDE_CLASS,
                             "Cannot use 'self' outside of class context")
                     );
+                }
+            }
+            Expr::Match { expr, arms } => {
+                self.analyze_expr(expr);
+                for arm in arms {
+                    self.analyze_match_pattern(&arm.pattern);
+                    for s in &arm.body {
+                        self.analyze_stmt(s);
+                    }
+                }
+            }
+        }
+    }
+
+    fn analyze_match_pattern(&mut self, pattern: &MatchPattern) {
+        match pattern {
+            MatchPattern::Literal(_) => {}
+            MatchPattern::Ident(name) => {
+                self.define_var(name, TypeInfo::Unknown);
+            }
+            MatchPattern::Underscore => {}
+            MatchPattern::Tuple(patterns) => {
+                for p in patterns {
+                    self.analyze_match_pattern(p);
+                }
+            }
+            MatchPattern::Variant { fields, .. } => {
+                // Define variables for each field binding (skip wildcards)
+                for field in fields {
+                    if field != "_" {
+                        self.define_var(field, TypeInfo::Unknown);
+                    }
                 }
             }
         }
@@ -715,11 +785,24 @@ impl ScopeAnalyzer {
             Expr::ClassLiteral { class_name, .. } => {
                 TypeInfo::Class(class_name.clone())
             }
+            Expr::MapLiteral(_) => {
+                TypeInfo::Class("Map".to_string())
+            }
             Expr::InterpolatedString { .. } => {
                 TypeInfo::Str
             }
             Expr::Self_ => {
                 self.get_type("self").unwrap_or(TypeInfo::Unknown)
+            }
+            Expr::Match { arms, .. } => {
+                // Return type is the type of the first arm's body
+                // In a real implementation, we'd check all arms have the same type
+                if let Some(first_arm) = arms.first() {
+                    if let Some(Stmt::ExprStmt(expr)) = first_arm.body.first() {
+                        return self.infer_expr_type(expr);
+                    }
+                }
+                TypeInfo::Unknown
             }
         }
     }
@@ -746,11 +829,22 @@ impl ScopeAnalyzer {
             TypeAnnotation::List(inner) => {
                 TypeInfo::List(Box::new(self.type_from_annotation(inner)))
             }
-            TypeAnnotation::Class(name) => TypeInfo::Class(name.clone()),
+            TypeAnnotation::Class(name) => {
+                // Handle type aliases
+                if name == "f64" { return TypeInfo::Float; }
+                if name == "i64" { return TypeInfo::Int; }
+                TypeInfo::Class(name.clone())
+            }
+            TypeAnnotation::GenericClass(name, args) => {
+                // For generic classes, we just use the name for now
+                // Full generic type checking would require more complex logic
+                TypeInfo::Class(name.clone())
+            }
             TypeAnnotation::Fn(_, _) => TypeInfo::Class("Function".to_string()),
             TypeAnnotation::Tuple(types) => {
                 TypeInfo::Tuple(types.iter().map(|t| self.type_from_annotation(t)).collect())
             }
+            TypeAnnotation::Self_ => TypeInfo::Unknown,  // Self is resolved at runtime
         }
     }
 

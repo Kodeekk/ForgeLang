@@ -4,86 +4,350 @@
 // ║                  String Class and Methods                         ║
 // ╚══════════════════════════════════════════════════════════════════╗
 
-/// String class - wrapper for string primitive
+/// String class - wrapper for string primitive.
+///
+/// Provides a rich set of methods for string manipulation.
+/// The underlying string primitive is accessed via `_value`.
+///
+/// # Examples
+///
+/// ```forge
+/// import std.str;
+/// var s = str.new("Hello, World!");
+/// println(s.length());    // 13
+/// println(s.upper());     // "HELLO, WORLD!"
+/// ```
 class str {
     var _value: str;
 
-    /// Constructor - converts any value to string
+    /// Constructor - converts any value to string.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Any value to convert to string
+    ///
+    /// # Returns
+    ///
+    /// A new string wrapper instance.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s1 = str.new("hello");
+    /// var s2 = str.new(42);
+    /// var s3 = str.new(3.14);
+    /// ```
     fn new(value) {
         return builtin_str_ctor(value);
     }
 
-    /// Get string length
+    /// Get the length of the string.
+    ///
+    /// # Returns
+    ///
+    /// The number of characters in the string.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello");
+    /// s.length();   // 5
+    /// ```
     fn length(self) {
         return builtin_str_length(self._value);
     }
 
-    /// Convert to uppercase
+    /// Convert the string to uppercase.
+    ///
+    /// # Returns
+    ///
+    /// A new string with all characters converted to uppercase.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello");
+    /// s.upper();    // "HELLO"
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `lower()` - convert to lowercase
     fn upper(self) {
         return builtin_str_upper(self._value);
     }
 
-    /// Convert to lowercase
+    /// Convert the string to lowercase.
+    ///
+    /// # Returns
+    ///
+    /// A new string with all characters converted to lowercase.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("HELLO");
+    /// s.lower();    // "hello"
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `upper()` - convert to uppercase
     fn lower(self) {
         return builtin_str_lower(self._value);
     }
 
-    /// Reverse string
+    /// Reverse the string.
+    ///
+    /// # Returns
+    ///
+    /// A new string with characters in reverse order.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello");
+    /// s.reverse();  // "olleH"
+    /// ```
     fn reverse(self) {
         return builtin_str_reverse(self._value);
     }
 
-    /// Trim whitespace
+    /// Trim whitespace from both ends of the string.
+    ///
+    /// # Returns
+    ///
+    /// A new string with leading and trailing whitespace removed.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("  Hello  ");
+    /// s.trim();     // "Hello"
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `upper()` - convert to uppercase
+    /// * `lower()` - convert to lowercase
     fn trim(self) {
         return builtin_str_trim(self._value);
     }
 
-    /// Check if contains substring
+    /// Check if the string contains a substring.
+    ///
+    /// # Arguments
+    ///
+    /// * `substr` - The substring to search for
+    ///
+    /// # Returns
+    ///
+    /// `true` if the substring is found, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello, World!");
+    /// s.contains("World");   // true
+    /// s.contains("Rust");    // false
+    /// ```
     fn contains(self, substr) {
         return builtin_str_contains(self._value, substr);
     }
 
-    /// Split by delimiter
+    /// Split the string by a delimiter.
+    ///
+    /// # Arguments
+    ///
+    /// * `delimiter` - The delimiter to split on
+    ///
+    /// # Returns
+    ///
+    /// A list of substrings.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("apple,banana,cherry");
+    /// s.split(",");   // ["apple", "banana", "cherry"]
+    /// ```
     fn split(self, delimiter) {
         return builtin_str_split(self._value, delimiter);
     }
 
-    /// Get character at index
+    /// Get the character at a specific index.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The index of the character (0-based)
+    ///
+    /// # Returns
+    ///
+    /// The character at the specified index.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello");
+    /// s.char_at(0);   // "H"
+    /// s.char_at(4);   // "o"
+    /// ```
     fn char_at(self, index) {
         return self._value[index];
     }
 
-    /// Find substring index
+    /// Find the index of a substring.
+    ///
+    /// # Arguments
+    ///
+    /// * `substr` - The substring to search for
+    ///
+    /// # Returns
+    ///
+    /// The index of the first occurrence of `substr`, or `-1` if not found.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello, World!");
+    /// s.find("World");   // 7
+    /// s.find("Rust");    // -1
+    /// ```
     fn find(self, substr) {
         return builtin_str_find(self._value, substr);
     }
 
-    /// Replace substring
+    /// Replace all occurrences of a substring.
+    ///
+    /// # Arguments
+    ///
+    /// * `old` - The substring to replace
+    /// * `new` - The replacement string
+    ///
+    /// # Returns
+    ///
+    /// A new string with all occurrences replaced.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello, World!");
+    /// s.replace("World", "ForgeLang");   // "Hello, ForgeLang!"
+    /// ```
     fn replace(self, old, new) {
         return builtin_str_replace(self._value, old, new);
     }
 
-    /// Starts with prefix
+    /// Check if the string starts with a prefix.
+    ///
+    /// # Arguments
+    ///
+    /// * `prefix` - The prefix to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if the string starts with `prefix`, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello, World!");
+    /// s.starts_with("Hello");   // true
+    /// s.starts_with("World");   // false
+    /// ```
     fn starts_with(self, prefix) {
         return builtin_str_starts_with(self._value, prefix);
     }
 
-    /// Ends with suffix
+    /// Check if the string ends with a suffix.
+    ///
+    /// # Arguments
+    ///
+    /// * `suffix` - The suffix to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if the string ends with `suffix`, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello, World!");
+    /// s.ends_with("World!");   // true
+    /// s.ends_with("World");    // false
+    /// ```
     fn ends_with(self, suffix) {
         return builtin_str_ends_with(self._value, suffix);
     }
 
-    /// Convert to string (identity)
+    /// Convert the string wrapper to a string.
+    ///
+    /// # Returns
+    ///
+    /// The underlying string value (identity operation).
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("Hello");
+    /// s.to_str();   // "Hello"
+    /// ```
     fn to_str(self) {
         return self._value;
     }
 
-    /// Convert to integer
+    /// Convert the string to an integer.
+    ///
+    /// # Returns
+    ///
+    /// The integer value represented by the string.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("42");
+    /// s.to_int();   // 42
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `to_float()` - convert to float
     fn to_int(self) {
         return builtin_str_to_int(self._value);
     }
 
-    /// Convert to float
+    /// Convert the string to a float.
+    ///
+    /// # Returns
+    ///
+    /// The float value represented by the string.
+    ///
+    /// # Examples
+    ///
+    /// ```forge
+    /// import std.str;
+    /// var s = str.new("3.14");
+    /// s.to_float();   // 3.14
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// * `to_int()` - convert to integer
     fn to_float(self) {
         return builtin_str_to_float(self._value);
     }

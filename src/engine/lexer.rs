@@ -4,7 +4,7 @@ use std::fmt;
 use std::rc::Rc;
 use crate::error::{ErrorCollector, CompileError, Span, codes};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StringInterpSegment {
     Text(String),
     Expr(String),
@@ -28,6 +28,9 @@ pub enum TokenType {
     Class,
     Interface,
     Implement,
+    Module,
+    Enum,
+    Type,
     For,
     While,
     If,
@@ -80,6 +83,7 @@ pub enum TokenType {
     Eof,
     Newline,
     Comment(String),
+    InterpolatedString(Vec<StringInterpSegment>),
 }
 
 impl fmt::Display for TokenType {
@@ -96,6 +100,9 @@ impl fmt::Display for TokenType {
             TokenType::Class => write!(f, "class"),
             TokenType::Interface => write!(f, "interface"),
             TokenType::Implement => write!(f, "implement"),
+            TokenType::Module => write!(f, "module"),
+            TokenType::Enum => write!(f, "enum"),
+            TokenType::Type => write!(f, "type"),
             TokenType::For => write!(f, "for"),
             TokenType::While => write!(f, "while"),
             TokenType::If => write!(f, "if"),
@@ -142,6 +149,7 @@ impl fmt::Display for TokenType {
             TokenType::Eof => write!(f, "EOF"),
             TokenType::Newline => write!(f, "NEWLINE"),
             TokenType::Comment(c) => write!(f, "Comment({})", c),
+            TokenType::InterpolatedString(_) => write!(f, "InterpolatedString"),
         }
     }
 }
@@ -270,7 +278,7 @@ impl Lexer {
         }
         Err("Unterminated string".to_string())
     }
-    /*
+
     fn read_interpolated_string(&mut self) -> Result<Vec<StringInterpSegment>, String> {
         self.advance(); // skip opening quote
         let mut segments = Vec::new();
@@ -367,7 +375,7 @@ impl Lexer {
         }
         Err("Unterminated interpolation".to_string())
     }
-    */
+
     fn read_number(&mut self) -> TokenType {
         let mut num_str = String::new();
         let mut is_float = false;
@@ -420,6 +428,9 @@ impl Lexer {
             "class" => TokenType::Class,
             "interface" => TokenType::Interface,
             "implement" => TokenType::Implement,
+            "module" => TokenType::Module,
+            "enum" => TokenType::Enum,
+            "type" => TokenType::Type,
             "for" => TokenType::For,
             "while" => TokenType::While,
             "if" => TokenType::If,
@@ -453,8 +464,16 @@ impl Lexer {
         
         // String literal
         if ch == '"' {
-            let s = self.read_string()?;
-            return Ok(Token::new(TokenType::Str(s), line, column));
+            // Try to read as interpolated string
+            match self.read_interpolated_string() {
+                Ok(segments) => {
+                    return Ok(Token::new(TokenType::InterpolatedString(segments), line, column));
+                }
+                Err(e) => {
+                    // Fall back to regular string
+                    return Err(e);
+                }
+            }
         }
         
         // Number literal

@@ -1,8 +1,31 @@
+// ═══════════════════════════════════════════════════════════════════
+// FORGELANG COMPREHENSIVE SHOWCASE
+// ═══════════════════════════════════════════════════════════════════
+//
+// This file demonstrates all major features of the ForgeLang language:
+//
+// • Module system and imports
+// • Constants and global variables
+// • Type aliases and generics
+// • Enums with pattern matching
+// • Interfaces and classes
+// • Generic functions and data structures
+// • Higher-order functions (map, filter, reduce, compose, pipe)
+// • Closures and lambdas
+// • Result/Option error handling
+// • File I/O and environment operations
+// • Randomness and matrix operations
+// • Control flow (if/else, match, for, while)
+// • Test harness with benchmarks
+//
+// Run with: `fl showcase_v2.fl`
+// ═══════════════════════════════════════════════════════════════════
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODULE DECLARATION
 //
-//   Every source file belongs to a module. The compiler uses this to
-//   resolve cross-file imports and enforce visibility boundaries.
+// Every source file belongs to a module. The compiler uses this to
+// resolve cross-file imports and enforce visibility boundaries.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 module forge.demo;
@@ -11,10 +34,10 @@ module forge.demo;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // IMPORTS
 //
-//   Three supported forms:
-//     import std.module;                        → std.module.fn()
-//     import std.module as alias;               → alias.fn()
-//     import [fn1, fn2 as f2] from std.module;  → bare names in scope
+// Three supported forms:
+//   import std.module;                        → std.module.fn()
+//   import std.module as alias;               → alias.fn()
+//   import [fn1, fn2 as f2] from std.module;  → bare names in scope
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import [print, println] from std.io;
@@ -34,6 +57,9 @@ import std.iter;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS & GLOBALS
+//
+// `const` defines immutable values.
+// `var` defines mutable global variables.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const APP_NAME: str = "ForgeLang";
@@ -49,8 +75,11 @@ var failed_tests: int = 0;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE ALIASES
 //
-//   `type` creates a named alias — useful for complex or repeated
-//   signatures, and for self-documenting intent.
+// `type` creates a named alias — useful for complex or repeated
+// signatures, and for self-documenting intent.
+//
+// Generic type aliases like `Predicate<T>` allow reusable function
+// type signatures across the codebase.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 type Predicate<T>  = fn(T) -> bool;
@@ -63,8 +92,13 @@ type Matrix        = list<list<f64>>;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ENUMS
 //
-//   Variants may carry associated data (tagged unions). Pattern
-//   matching on enums is exhaustive — the compiler warns on gaps.
+// Variants may carry associated data (tagged unions). Pattern
+// matching on enums is exhaustive — the compiler warns on gaps.
+//
+// These enums demonstrate:
+// • Simple variants (Direction)
+// • Variants with named fields (Shape, Color)
+// • Generic enums (Option<T>, Result<T, E>)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 enum Direction {
@@ -107,6 +141,15 @@ enum LogLevel {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // INTERFACES
+//
+// Interfaces define behavior that classes and types can implement.
+// They enable polymorphism and abstraction in ForgeLang.
+//
+// • Displayable - convert to string representation
+// • Runnable - types that can be executed
+// • Comparable<T> - types that can be compared
+// • Serializable - types that can be serialized to/from JSON
+// • Iterator<T> - types that can iterate over elements
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 interface Displayable {
@@ -138,6 +181,15 @@ interface Iterator<T> {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CLASSES
+//
+// Classes in ForgeLang support:
+// • Fields with type annotations
+// • Constructor methods (fn new)
+// • Instance methods with `self`
+// • Interface implementation
+// • Operator overloading
+// • Generic classes (Stack<T>, Queue<T>)
+// • Method chaining (immutable update pattern)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // ── Vector2 ──────────────────────────────────────────────────────────
@@ -534,7 +586,13 @@ implement Displayable for Cat {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GENERICS — STANDALONE FUNCTIONS
 //
-//   Generic type parameters appear in angle brackets after the name.
+// Generic type parameters appear in angle brackets after the name.
+// These functions demonstrate:
+// • Identity and swap (basic generics)
+// • Constrained generics (T: Comparable<T>)
+// • List operations (zip, unzip, flatten, chunk)
+// • Higher-order functions (take_while, drop_while, group_by, partition)
+// • Function composition (compose, pipe, memoize)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 fn identity<T>(value: T) -> T {
@@ -657,10 +715,26 @@ fn memoize<T, R>(f: fn(T) -> R) -> fn(T) -> R {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // UTILITY & DOMAIN FUNCTIONS
+//
+// This section contains utility functions organized by domain:
+// • Test harness - test runner and benchmarking utilities
+// • String utilities - greet, slugify, truncate, pad, word count, etc.
+// • Number utilities - fib, factorial, collatz, digital_root, to_roman
+// • Collection utilities - primes, running_sum, moving_average, etc.
+// • Geometry - shape area/perimeter calculations
+// • Color - hex conversion, RGB, blending
+// • Result utilities - safe_divide, safe_sqrt, unwrap_or, map_result, and_then
+// • Navigation - direction operations and path walking
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // — Test harness —
 
+/// Record a test result.
+///
+/// # Arguments
+///
+/// * `name` - Descriptive name of the test
+/// * `condition` - The condition being tested (true = pass, false = fail)
 fn test(name: str, condition: bool) -> void {
     total_tests = total_tests + 1;
     if condition {
@@ -672,12 +746,23 @@ fn test(name: str, condition: bool) -> void {
     }
 }
 
+/// Print a section header for demo output.
+///
+/// # Arguments
+///
+/// * `title` - The section title to display
 fn section(title: str) -> void {
     println("\n========================================");
     println("  {title}");
     println("========================================\n");
 }
 
+/// Measure and print the execution time of a function.
+///
+/// # Arguments
+///
+/// * `label` - A descriptive label for the benchmark
+/// * `task` - The function to measure
 fn benchmark(label: str, task: fn() -> void) -> void {
     var start   = time.now();
     task();
@@ -688,38 +773,110 @@ fn benchmark(label: str, task: fn() -> void) -> void {
 
 // — Strings —
 
+/// Create a greeting message for a person.
+///
+/// # Arguments
+///
+/// * `name` - The person's name
+///
+/// # Returns
+///
+/// A greeting string. If name is empty, returns "Hello, Stranger!"
 fn greet(name: str) -> str {
     if name.length() == 0 { return "Hello, Stranger!"; }
     return "Hello, {name}!";
 }
 
+/// Convert a string to URL-friendly slug format.
+///
+/// Trims whitespace, converts to lowercase, replaces spaces with hyphens,
+/// and removes non-alphanumeric characters.
+///
+/// # Arguments
+///
+/// * `s` - The string to slugify
+///
+/// # Returns
+///
+/// A slugified string suitable for URLs.
 fn slugify(s: str) -> str {
     return s.trim().lower().replace(" ", "-").replace_regex("[^a-z0-9\\-]", "");
 }
 
+/// Truncate a string to a maximum length.
+///
+/// # Arguments
+///
+/// * `s` - The string to truncate
+/// * `max_len` - Maximum length including ellipsis
+/// * `ellipsis` - String to append when truncated (e.g., "...")
+///
+/// # Returns
+///
+/// The truncated string with ellipsis if needed.
 fn truncate(s: str, max_len: int, ellipsis: str) -> str {
     if s.length() <= max_len { return s; }
     return s.slice(0, max_len - ellipsis.length()) + ellipsis;
 }
 
+/// Pad a string on the left to reach a specified width.
+///
+/// # Arguments
+///
+/// * `s` - The string to pad
+/// * `width` - The target width
+/// * `char` - The padding character
+///
+/// # Returns
+///
+/// The padded string.
 fn pad_left(s: str, width: int, char: str) -> str {
     var pad: int = width - s.length();
     if pad <= 0 { return s; }
     return char.repeat(pad) + s;
 }
 
+/// Pad a string on the right to reach a specified width.
+///
+/// # Arguments
+///
+/// * `s` - The string to pad
+/// * `width` - The target width
+/// * `char` - The padding character
+///
+/// # Returns
+///
+/// The padded string.
 fn pad_right(s: str, width: int, char: str) -> str {
     var pad: int = width - s.length();
     if pad <= 0 { return s; }
     return s + char.repeat(pad);
 }
 
+/// Count the number of words in a string.
+///
+/// # Arguments
+///
+/// * `s` - The string to analyze
+///
+/// # Returns
+///
+/// The word count.
 fn count_words(s: str) -> int {
     return s.trim().split(" ").filter(fn(w: str) -> bool {
         return w.length() > 0;
     }).length();
 }
 
+/// Convert a string to title case (first letter of each word capitalized).
+///
+/// # Arguments
+///
+/// * `s` - The string to convert
+///
+/// # Returns
+///
+/// The title-cased string.
 fn title_case(s: str) -> str {
     return s.split(" ").map(fn(word: str) -> str {
         if word.length() == 0 { return word; }
@@ -727,6 +884,15 @@ fn title_case(s: str) -> str {
     }).join(" ");
 }
 
+/// Check if a string is a palindrome (reads the same forwards and backwards).
+///
+/// # Arguments
+///
+/// * `s` - The string to check
+///
+/// # Returns
+///
+/// `true` if the string is a palindrome, `false` otherwise.
 fn is_palindrome(s: str) -> bool {
     var clean: str = s.lower().replace_regex("[^a-z0-9]", "");
     return clean == clean.reverse();
@@ -735,21 +901,52 @@ fn is_palindrome(s: str) -> bool {
 
 // — Numbers —
 
+/// Compute the n-th Fibonacci number (recursive, naive implementation).
+///
+/// # Arguments
+///
+/// * `n` - The position in the Fibonacci sequence (0-indexed)
+///
+/// # Returns
+///
+/// The n-th Fibonacci number.
 fn fib(n: int) -> int {
     if n <= 1 { return n; }
     return fib(n - 1) + fib(n - 2);
 }
 
+/// Memoized Fibonacci function for efficient computation.
 var fib_memo: fn(int) -> int = memoize(fn(n: int) -> int {
     if n <= 1 { return n; }
     return fib_memo(n - 1) + fib_memo(n - 2);
 });
 
+/// Compute the factorial of a number.
+///
+/// # Arguments
+///
+/// * `n` - A non-negative integer
+///
+/// # Returns
+///
+/// n! (n factorial).
 fn factorial(n: int) -> int {
     if n <= 1 { return 1; }
     return n * factorial(n - 1);
 }
 
+/// Generate the Collatz sequence starting from n.
+///
+/// The Collatz conjecture: starting from any positive integer,
+/// the sequence will always reach 1.
+///
+/// # Arguments
+///
+/// * `n` - The starting number
+///
+/// # Returns
+///
+/// The Collatz sequence as a list.
 fn collatz(n: int) -> list<int> {
     var seq: list<int> = [n];
     var cur: int = n;
@@ -761,15 +958,45 @@ fn collatz(n: int) -> list<int> {
     return seq;
 }
 
+/// Get the digits of a number as a list.
+///
+/// # Arguments
+///
+/// * `n` - The number to extract digits from
+///
+/// # Returns
+///
+/// A list of digits.
 fn digits(n: int) -> list<int> {
     return str(math.abs(n)).chars().map(fn(c: str) -> int { return int(c); });
 }
 
+/// Compute the digital root of a number.
+///
+/// The digital root is the single-digit result of repeatedly
+/// summing the digits until a single digit remains.
+///
+/// # Arguments
+///
+/// * `n` - The number to compute the digital root for
+///
+/// # Returns
+///
+/// The digital root (a single digit 0-9).
 fn digital_root(n: int) -> int {
     if n < 10 { return n; }
     return digital_root(digits(n).reduce(0, fn(acc: int, d: int) -> int { return acc + d; }));
 }
 
+/// Convert an integer to Roman numeral representation.
+///
+/// # Arguments
+///
+/// * `n` - The integer to convert (must be positive)
+///
+/// # Returns
+///
+/// The Roman numeral string.
 fn to_roman(n: int) -> str {
     const VALUES: list<int> = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
     const SYMS:   list<str> = ["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"];
@@ -786,16 +1013,51 @@ fn to_roman(n: int) -> str {
     return result;
 }
 
+/// Clamp an integer between min and max.
+///
+/// # Arguments
+///
+/// * `n` - The value to clamp
+/// * `lo` - Minimum value
+/// * `hi` - Maximum value
+///
+/// # Returns
+///
+/// The clamped value.
 fn clamp_int(n: int, lo: int, hi: int) -> int {
     if n < lo { return lo; }
     if n > hi { return hi; }
     return n;
 }
 
+/// Linear interpolation between two values.
+///
+/// # Arguments
+///
+/// * `a` - Start value
+/// * `b` - End value
+/// * `t` - Interpolation factor (clamped to [0, 1])
+///
+/// # Returns
+///
+/// The interpolated value.
 fn lerp_f64(a: f64, b: f64, t: f64) -> f64 {
     return a + (b - a) * math.clamp(t, 0.0, 1.0);
 }
 
+/// Map a value from one range to another.
+///
+/// # Arguments
+///
+/// * `val` - The value to map
+/// * `in_lo` - Input range minimum
+/// * `in_hi` - Input range maximum
+/// * `out_lo` - Output range minimum
+/// * `out_hi` - Output range maximum
+///
+/// # Returns
+///
+/// The value mapped to the output range.
 fn map_range(val: f64, in_lo: f64, in_hi: f64, out_lo: f64, out_hi: f64) -> f64 {
     return out_lo + (val - in_lo) / (in_hi - in_lo) * (out_hi - out_lo);
 }
@@ -803,6 +1065,15 @@ fn map_range(val: f64, in_lo: f64, in_hi: f64, out_lo: f64, out_hi: f64) -> f64 
 
 // — Collections —
 
+/// Generate all prime numbers up to a limit using the Sieve of Eratosthenes.
+///
+/// # Arguments
+///
+/// * `limit` - The maximum number to check
+///
+/// # Returns
+///
+/// A list of all prime numbers up to `limit`.
 fn primes_up_to(limit: int) -> list<int> {
     var sieve: list<bool> = list.fill(limit + 1, true);
     sieve[0] = false;
@@ -827,6 +1098,15 @@ fn primes_up_to(limit: int) -> list<int> {
     return result;
 }
 
+/// Compute the running sum of a list of numbers.
+///
+/// # Arguments
+///
+/// * `numbers` - The input list
+///
+/// # Returns
+///
+/// A list where each element is the cumulative sum up to that point.
 fn running_sum(numbers: list<int>) -> list<int> {
     var result: list<int> = [];
     var acc: int = 0;
@@ -837,6 +1117,16 @@ fn running_sum(numbers: list<int>) -> list<int> {
     return result;
 }
 
+/// Compute the moving average of a list with a given window size.
+///
+/// # Arguments
+///
+/// * `numbers` - The input list of numbers
+/// * `window` - The size of the sliding window
+///
+/// # Returns
+///
+/// A list of moving averages.
 fn moving_average(numbers: list<f64>, window: int) -> list<f64> {
     var result: list<f64> = [];
     var i: int = 0;
@@ -849,6 +1139,15 @@ fn moving_average(numbers: list<f64>, window: int) -> list<f64> {
     return result;
 }
 
+/// Build a frequency map from a list of items.
+///
+/// # Arguments
+///
+/// * `items` - The input list
+///
+/// # Returns
+///
+/// A map where keys are items and values are their counts.
 fn frequency_map(items: list<str>) -> map<str, int> {
     var freq: map<str, int> = map.new();
     for item in items {
@@ -858,6 +1157,15 @@ fn frequency_map(items: list<str>) -> map<str, int> {
     return freq;
 }
 
+/// Remove duplicates from a list while preserving order.
+///
+/// # Arguments
+///
+/// * `items` - The input list
+///
+/// # Returns
+///
+/// A deduplicated list.
 fn deduplicate<T>(items: list<T>) -> list<T> {
     var seen:   set<T>    = set.new();
     var result: list<T>   = [];
@@ -870,12 +1178,31 @@ fn deduplicate<T>(items: list<T>) -> list<T> {
     return result;
 }
 
+/// Rotate a list by n positions.
+///
+/// # Arguments
+///
+/// * `items` - The list to rotate
+/// * `n` - Number of positions to rotate
+///
+/// # Returns
+///
+/// The rotated list.
 fn rotate<T>(items: list<T>, n: int) -> list<T> {
     if items.length() == 0 { return items; }
     var offset: int = n % items.length();
     return items.slice(offset).concat(items.slice(0, offset));
 }
 
+/// Transpose a matrix (swap rows and columns).
+///
+/// # Arguments
+///
+/// * `matrix` - The input matrix (list of lists)
+///
+/// # Returns
+///
+/// The transposed matrix.
 fn transpose(matrix: Matrix) -> Matrix {
     if matrix.length() == 0 { return []; }
     var rows: int = matrix.length();
@@ -923,6 +1250,15 @@ fn shape_name(s: Shape) -> str {
 
 // — Color —
 
+/// Convert a color to hexadecimal string representation.
+///
+/// # Arguments
+///
+/// * `c` - The color to convert
+///
+/// # Returns
+///
+/// A hex color string (e.g., "#FF0000" for red).
 fn color_to_hex(c: Color) -> str {
     return match c {
         Color.Red              => "#FF0000",
@@ -932,6 +1268,17 @@ fn color_to_hex(c: Color) -> str {
     };
 }
 
+/// Blend two colors with a given interpolation factor.
+///
+/// # Arguments
+///
+/// * `a` - First color
+/// * `b` - Second color
+/// * `t` - Blend factor (0.0 = all a, 1.0 = all b)
+///
+/// # Returns
+///
+/// The blended color.
 fn color_blend(a: Color, b: Color, t: f64) -> Color {
     var (ar, ag, ab) = color_to_rgb(a);
     var (br, bg, bb) = color_to_rgb(b);
@@ -942,6 +1289,15 @@ fn color_blend(a: Color, b: Color, t: f64) -> Color {
     );
 }
 
+/// Convert a color to RGB components.
+///
+/// # Arguments
+///
+/// * `c` - The color to convert
+///
+/// # Returns
+///
+/// A tuple of (red, green, blue) values (0-255).
 fn color_to_rgb(c: Color) -> (int, int, int) {
     return match c {
         Color.Red             => (255, 0,   0),
@@ -954,16 +1310,45 @@ fn color_to_rgb(c: Color) -> (int, int, int) {
 
 // — Result helpers —
 
+/// Safely divide two numbers, returning an error for division by zero.
+///
+/// # Arguments
+///
+/// * `a` - The dividend
+/// * `b` - The divisor
+///
+/// # Returns
+///
+/// `Result.Ok(a / b)` if b != 0, or `Result.Err("division by zero")` otherwise.
 fn safe_divide(a: f64, b: f64) -> Result<f64, str> {
     if b == 0.0 { return Result.Err("division by zero"); }
     return Result.Ok(a / b);
 }
 
+/// Safely compute square root, returning an error for negative numbers.
+///
+/// # Arguments
+///
+/// * `n` - The number to compute square root of
+///
+/// # Returns
+///
+/// `Result.Ok(sqrt(n))` if n >= 0, or an error otherwise.
 fn safe_sqrt(n: f64) -> Result<f64, str> {
     if n < 0.0 { return Result.Err("cannot sqrt negative number"); }
     return Result.Ok(math.sqrt(n));
 }
 
+/// Extract the value from a Result, or return a fallback value.
+///
+/// # Arguments
+///
+/// * `result` - The Result to unwrap
+/// * `fallback` - Value to return if result is an error
+///
+/// # Returns
+///
+/// The Ok value or the fallback.
 fn unwrap_or<T>(result: Result<T, str>, fallback: T) -> T {
     return match result {
         Result.Ok(v)  => v,
@@ -971,6 +1356,16 @@ fn unwrap_or<T>(result: Result<T, str>, fallback: T) -> T {
     };
 }
 
+/// Map a function over the Ok value of a Result.
+///
+/// # Arguments
+///
+/// * `result` - The Result to map over
+/// * `f` - Function to apply to the Ok value
+///
+/// # Returns
+///
+/// A new Result with the transformed value (or the original error).
 fn map_result<T, U>(result: Result<T, str>, f: fn(T) -> U) -> Result<U, str> {
     return match result {
         Result.Ok(v)  => Result.Ok(f(v)),
@@ -978,6 +1373,16 @@ fn map_result<T, U>(result: Result<T, str>, f: fn(T) -> U) -> Result<U, str> {
     };
 }
 
+/// Chain Result-returning functions (monadic bind).
+///
+/// # Arguments
+///
+/// * `result` - The Result to chain from
+/// * `f` - Function that returns a Result
+///
+/// # Returns
+///
+/// The result of applying f to the Ok value, or the original error.
 fn and_then<T, U>(result: Result<T, str>, f: fn(T) -> Result<U, str>) -> Result<U, str> {
     return match result {
         Result.Ok(v)  => f(v),
@@ -988,6 +1393,17 @@ fn and_then<T, U>(result: Result<T, str>, f: fn(T) -> Result<U, str>) -> Result<
 
 // — Navigation / direction —
 
+/// Move a point in a direction by a number of steps.
+///
+/// # Arguments
+///
+/// * `p` - The starting point
+/// * `d` - The direction to move
+/// * `steps` - Number of steps to move
+///
+/// # Returns
+///
+/// The new point after moving.
 fn move_point(p: Point, d: Direction, steps: int) -> Point {
     return match d {
         Direction.North => p.translate(0,      steps),
@@ -997,6 +1413,15 @@ fn move_point(p: Point, d: Direction, steps: int) -> Point {
     };
 }
 
+/// Get the opposite direction.
+///
+/// # Arguments
+///
+/// * `d` - The direction
+///
+/// # Returns
+///
+/// The opposite direction.
 fn direction_opposite(d: Direction) -> Direction {
     return match d {
         Direction.North => Direction.South,
@@ -1006,6 +1431,16 @@ fn direction_opposite(d: Direction) -> Direction {
     };
 }
 
+/// Generate a path by walking from a starting point through a series of moves.
+///
+/// # Arguments
+///
+/// * `start` - The starting point
+/// * `moves` - List of (direction, steps) pairs
+///
+/// # Returns
+///
+/// A list of all points visited during the walk.
 fn walk(start: Point, moves: list<(Direction, int)>) -> list<Point> {
     var path: list<Point> = [start];
     var current: Point = start;
@@ -1019,6 +1454,24 @@ fn walk(start: Point, moves: list<(Direction, int)>) -> list<Point> {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN
+//
+// The main entry point for the comprehensive ForgeLang showcase.
+// This function demonstrates and tests all major language features:
+//
+// 1.  String operations
+// 2.  Mathematics and number theory
+// 3.  Lists and higher-order functions
+// 4.  Generics (Stack, Queue)
+// 5.  Enums and pattern matching
+// 6.  Classes and objects
+// 7.  Logger and EventEmitter
+// 8.  Control flow
+// 9.  Filesystem operations
+// 10. Environment variables
+// 11. Randomness
+// 12. Matrix operations
+//
+// Returns 0 on success.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 fn main() -> int {
