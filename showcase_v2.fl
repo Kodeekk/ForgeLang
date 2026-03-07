@@ -1,0 +1,277 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//                 FORGELANG SYSTEM ORCHESTRATION SHOWCASE
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ForgeLang is a high-level interpreted systems language designed for
+// direct interaction with the operating system environment.
+//
+// This file demonstrates:
+//
+// • modules and imports
+// • classes and interfaces
+// • filesystem manipulation
+// • environment access
+// • shell execution and pipelines
+// • lists and iteration
+// • text processing
+// • process orchestration
+// • runtime utilities
+//
+// The goal is not algorithmic complexity.
+// The goal is **system orchestration and environment control**.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import [print, println] from std.io;
+import std.fs;
+import std.env;
+import std.str;
+import std.list;
+import std.math;
+import std.proc;
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL INFO
+// ═══════════════════════════════════════════════════════════════════════════
+
+const APP_NAME: str = "Forge System Showcase";
+const VERSION: str = "2.0";
+
+var tests_total: int = 0;
+var tests_passed: int = 0;
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERFACES
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface Displayable {
+    fn to_str(self) -> str;
+}
+
+interface Runnable {
+    fn run(self) -> int;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA CLASSES
+// ═══════════════════════════════════════════════════════════════════════════
+
+class FileInfo implements Displayable {
+    var path: str;
+    var size: int;
+
+    fn new(p: str, s: int) -> FileInfo {
+        return FileInfo { path: p, size: s };
+    }
+
+    fn to_str(self) -> str {
+        return self.path + " (" + self.size + " bytes)";
+    }
+}
+
+
+class ProcessTask implements Runnable, Displayable {
+    var command: str;
+
+    fn new(cmd: str) -> ProcessTask {
+        return ProcessTask { command: cmd };
+    }
+
+    fn run(self) -> int {
+        println("Running command:");
+        println(self.command);
+
+        var result: int = proc.exec(self.command);
+
+        println("Exit code: {result}");
+
+        return result;
+    }
+
+    fn to_str(self) -> str {
+        return "ProcessTask: " + self.command;
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn section(title: str) {
+    println("");
+    println("==============================================");
+    println(title);
+    println("==============================================");
+}
+
+
+fn test(name: str, cond: bool) {
+    tests_total = tests_total + 1;
+
+    if cond {
+        tests_passed = tests_passed + 1;
+        println("[PASS] " + name);
+    } else {
+        println("[FAIL] " + name);
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STRING UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn string_demo() {
+    section("STRING PROCESSING");
+
+    var text: str = "   ForgeLang is powerful   ";
+
+    println("Original: '" + text + "'");
+    println("Trimmed: '" + text.trim() + "'");
+    println("Upper: '" + text.upper() + "'");
+    println("Reversed: '" + text.reverse() + "'");
+
+    test("trim works", text.trim() == "ForgeLang is powerful");
+    test("upper works", "forge".upper() == "FORGE");
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILESYSTEM DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn filesystem_demo() {
+    section("FILESYSTEM");
+
+    var cwd: str = env.cwd();
+
+    println("Current directory:");
+    println(cwd);
+
+    var files = fs.read_dir(cwd);
+
+    println("Files found: {files.length()}");
+
+    for f in files {
+        var size: int = fs.size(cwd + "/" + f);
+        var info = FileInfo.new(f, size);
+        println(info.to_str());
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENVIRONMENT DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn env_demo() {
+    section("ENVIRONMENT");
+
+    var user: str = env.get("USER");
+    var shell: str = env.get("SHELL");
+    var home: str = env.get("HOME");
+
+    println("User: " + user);
+    println("Shell: " + shell);
+    println("Home: " + home);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROCESS EXECUTION DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn process_demo() {
+    section("PROCESS EXECUTION");
+
+    var t1 = ProcessTask.new("echo Hello Forge");
+    var t2 = ProcessTask.new("uname -a");
+
+    t1.run();
+    t2.run();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PIPELINE STYLE SYSTEM WORK
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn pipeline_demo() {
+    section("SYSTEM PIPELINE");
+
+    println("Counting files in current directory using shell:");
+
+    var cmd: str = "ls | wc -l";
+    var result: str = proc.capture(cmd);
+
+    println("File count:");
+    println(result);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MATH DEMO
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn math_demo() {
+    section("MATH");
+
+    println("abs(-42) = {math.abs(-42)}");
+    println("sqrt(144) = {math.sqrt(144)}");
+    println("pow(2,10) = {math.pow(2,10)}");
+
+    test("math abs", math.abs(-5) == 5);
+    test("math pow", math.pow(2,5) == 32);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LIST PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn list_demo() {
+    section("LIST PROCESSING");
+
+    var nums = [1,2,3,4,5,6,7,8];
+
+    println("Numbers: {nums}");
+
+    var sum: int = 0;
+
+    for n in nums {
+        sum = sum + n;
+    }
+
+    println("Sum: {sum}");
+
+    test("sum correct", sum == 36);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn main() {
+    println("");
+    println("╔══════════════════════════════════════════════╗");
+    println("║         FORGELANG SYSTEM SHOWCASE           ║");
+    println("║                VERSION " + VERSION + "                 ║");
+    println("╚══════════════════════════════════════════════╝");
+
+    string_demo();
+    math_demo();
+    list_demo();
+    filesystem_demo();
+    env_demo();
+    process_demo();
+    pipeline_demo();
+
+    section("RESULTS");
+
+    println("Tests passed: {tests_passed}");
+    println("Tests total : {tests_total}");
+}

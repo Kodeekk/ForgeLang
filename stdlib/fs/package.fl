@@ -1,0 +1,364 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.fs                                     ║
+// ║                  File System Operations                           ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Read the contents of a file as a string.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file to read
+///
+/// # Returns
+///
+/// The contents of the file as a string.
+///
+/// # Errors
+///
+/// May fail if the file doesn't exist or cannot be read.
+///
+/// # Examples
+///
+/// ```forge
+/// import [read] from std.fs;
+/// var content = read("hello.txt");
+/// println(content);
+/// ```
+///
+/// # See Also
+///
+/// * `write()` - write to a file
+/// * `exists()` - check if a file exists
+fn read(path) -> str {
+    return builtin_fs_read(path);
+}
+
+/// Write a string to a file.
+///
+/// Creates the file if it doesn't exist, or overwrites it if it does.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file
+/// * `content` - The content to write
+///
+/// # Examples
+///
+/// ```forge
+/// import [write] from std.fs;
+/// write("hello.txt", "Hello, World!");
+/// ```
+///
+/// # See Also
+///
+/// * `read()` - read from a file
+/// * `append()` - append to a file
+fn write(path, content) -> void {
+    builtin_fs_write(path, content);
+}
+
+/// Append a string to a file.
+///
+/// Creates the file if it doesn't exist.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file
+/// * `content` - The content to append
+///
+/// # Examples
+///
+/// ```forge
+/// import [append] from std.fs;
+/// append("log.txt", "New log entry\n");
+/// ```
+///
+/// # See Also
+///
+/// * `write()` - write to a file (overwrite)
+/// * `read()` - read from a file
+fn append(path, content) -> void {
+    builtin_fs_append(path, content);
+}
+
+/// Check if a file or directory exists.
+///
+/// # Arguments
+///
+/// * `path` - The path to check
+///
+/// # Returns
+///
+/// `true` if the path exists, `false` otherwise.
+///
+/// # Examples
+///
+/// ```forge
+/// import [exists] from std.fs;
+/// if exists("config.yaml") {
+///     println("Config found!");
+/// }
+/// ```
+///
+/// # See Also
+///
+/// * `read()` - read from a file
+/// * `remove()` - remove a file
+fn exists(path) -> bool {
+    return builtin_fs_exists(path);
+}
+
+/// Remove (delete) a file.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file to remove
+///
+/// # Errors
+///
+/// May fail if the file doesn't exist or cannot be removed.
+///
+/// # Examples
+///
+/// ```forge
+/// import [remove] from std.fs;
+/// remove("temp.txt");
+/// ```
+///
+/// # See Also
+///
+/// * `exists()` - check if a file exists
+fn remove(path) -> void {
+    builtin_fs_remove(path);
+}
+
+/// Get the directory name from a path.
+///
+/// Returns the parent directory portion of the path.
+///
+/// # Arguments
+///
+/// * `path` - The path to extract the directory from
+///
+/// # Returns
+///
+/// The directory portion of the path, or `""` if no directory component.
+///
+/// # Examples
+///
+/// ```forge
+/// import [dirname] from std.fs;
+/// dirname("/home/user/file.txt");   // "/home/user"
+/// dirname("file.txt");              // ""
+/// dirname("/");                     // "/"
+/// ```
+///
+/// # See Also
+///
+/// * `basename()` - get the file name from a path
+fn dirname(path) -> str {
+    var parts = path.split("/");
+    if parts.length() <= 1 {
+        return "";
+    }
+    var result = "";
+    var i = 0;
+    while i < parts.length() - 1 {
+        if i > 0 {
+            result = result + "/";
+        }
+        result = result + parts[i];
+        i = i + 1;
+    }
+    if result == "" {
+        return "/";
+    }
+    return result;
+}
+
+/// Get the file name from a path.
+///
+/// Returns the last component of the path (file or directory name).
+///
+/// # Arguments
+///
+/// * `path` - The path to extract the file name from
+///
+/// # Returns
+///
+/// The file name portion of the path.
+///
+/// # Examples
+///
+/// ```forge
+/// import [basename] from std.fs;
+/// basename("/home/user/file.txt");   // "file.txt"
+/// basename("/home/user");            // "user"
+/// basename("file.txt");              // "file.txt"
+/// ```
+///
+/// # See Also
+///
+/// * `dirname()` - get the directory from a path
+/// * `extension()` - get the file extension
+/// * `file_stem()` - get the file name without extension
+fn basename(path) -> str {
+    var parts = path.split("/");
+    return parts.last();
+}
+
+/// Get the file extension from a path.
+///
+/// # Arguments
+///
+/// * `path` - The path to extract the extension from
+///
+/// # Returns
+///
+/// The extension (without the dot), or `""` if no extension.
+///
+/// # Examples
+///
+/// ```forge
+/// import [extension] from std.fs;
+/// extension("file.txt");        // "txt"
+/// extension("archive.tar.gz");  // "gz"
+/// extension("README");          // ""
+/// ```
+///
+/// # See Also
+///
+/// * `basename()` - get the file name
+/// * `file_stem()` - get the file name without extension
+fn extension(path) -> str {
+    var name = basename(path);
+    var parts = name.split(".");
+    if parts.length() <= 1 {
+        return "";
+    }
+    return parts.last();
+}
+
+/// Get the file name without extension.
+///
+/// # Arguments
+///
+/// * `path` - The path to extract the stem from
+///
+/// # Returns
+///
+/// The file name without the extension.
+///
+/// # Examples
+///
+/// ```forge
+/// import [file_stem] from std.fs;
+/// file_stem("file.txt");        // "file"
+/// file_stem("archive.tar.gz");  // "archive.tar"
+/// file_stem("README");          // "README"
+/// ```
+///
+/// # See Also
+///
+/// * `basename()` - get the file name
+/// * `extension()` - get the file extension
+fn file_stem(path) -> str {
+    var name = basename(path);
+    var parts = name.split(".");
+    if parts.length() <= 1 {
+        return name;
+    }
+    var result = parts[0];
+    var i = 1;
+    while i < parts.length() - 1 {
+        result = result + "." + parts[i];
+        i = i + 1;
+    }
+    return result;
+}
+
+/// Create a directory.
+///
+/// # Arguments
+///
+/// * `path` - The path of the directory to create
+///
+/// # Errors
+///
+/// May fail if the directory already exists or cannot be created.
+///
+/// # Examples
+///
+/// ```forge
+/// import [create_dir] from std.fs;
+/// create_dir("output");
+/// ```
+///
+/// # See Also
+///
+/// * `read_dir()` - read directory contents
+fn create_dir(path) -> void {
+    builtin_fs_create_dir(path);
+}
+
+/// Read the entries in a directory.
+///
+/// # Arguments
+///
+/// * `path` - The path to the directory
+///
+/// # Returns
+///
+/// A list of file/directory names in the directory.
+///
+/// # Errors
+///
+/// May fail if the directory doesn't exist or cannot be read.
+///
+/// # Examples
+///
+/// ```forge
+/// import [read_dir] from std.fs;
+/// var entries = read_dir(".");
+/// for entry in entries {
+///     println(entry);
+/// }
+/// ```
+///
+/// # See Also
+///
+/// * `create_dir()` - create a directory
+/// * `exists()` - check if a path exists
+fn read_dir(path) {
+    return builtin_fs_read_dir(path);
+}
+
+/// Get the size of a file in bytes.
+///
+/// # Arguments
+///
+/// * `path` - The path to the file
+///
+/// # Returns
+///
+/// The size of the file in bytes.
+///
+/// # Errors
+///
+/// May fail if the file doesn't exist or cannot be read.
+///
+/// # Examples
+///
+/// ```forge
+/// import [size] from std.fs;
+/// var file_size = size("hello.txt");
+/// println("File size: {file_size} bytes");
+/// ```
+///
+/// # See Also
+///
+/// * `exists()` - check if a file exists
+fn size(path) -> int {
+    return builtin_fs_size(path);
+}

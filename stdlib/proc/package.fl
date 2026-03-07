@@ -1,0 +1,62 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                       std.proc                                    ║
+// ║                  Process Execution Operations                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+/// Execute a shell command and return the exit code.
+///
+/// Runs the command through the system shell and returns the exit code.
+/// Output is printed directly to stdout/stderr.
+///
+/// # Arguments
+///
+/// * `command` - The shell command to execute
+///
+/// # Returns
+///
+/// The exit code of the command (0 for success).
+///
+/// # Examples
+///
+/// ```forge
+/// import [exec] from std.proc;
+/// var code = exec("echo Hello");
+/// // Prints: Hello
+/// // code = 0
+/// ```
+///
+/// # See Also
+///
+/// * `capture()` - execute and capture output
+fn exec(command) -> int {
+    return builtin_proc_exec(command);
+}
+
+/// Execute a shell command and capture its output.
+///
+/// Runs the command through the system shell and captures stdout.
+/// The output is returned as a string (trailing newline is stripped).
+///
+/// # Arguments
+///
+/// * `command` - The shell command to execute
+///
+/// # Returns
+///
+/// The stdout output of the command as a string.
+///
+/// # Examples
+///
+/// ```forge
+/// import [capture] from std.proc;
+/// var files = capture("ls -1");
+/// println("Files: {files}");
+/// ```
+///
+/// # See Also
+///
+/// * `exec()` - execute and return exit code
+fn capture(command) -> str {
+    return builtin_proc_capture(command);
+}

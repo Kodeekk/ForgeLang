@@ -1,0 +1,233 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                       std.env                                     ║
+// ║                  Environment Operations                           ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Get the current working directory.
+///
+/// # Returns
+///
+/// The absolute path of the current working directory.
+///
+/// # Examples
+///
+/// ```forge
+/// import [cwd] from std.env;
+/// var dir = cwd();
+/// println("Working in: {dir}");
+/// ```
+///
+/// # See Also
+///
+/// * `home()` - get the home directory
+fn cwd() -> str {
+    return builtin_env_cwd();
+}
+
+/// Get the home directory of the current user.
+///
+/// # Returns
+///
+/// The absolute path of the user's home directory.
+///
+/// # Examples
+///
+/// ```forge
+/// import [home] from std.env;
+/// var home_dir = home();
+/// println("Home: {home_dir}");
+/// ```
+///
+/// # See Also
+///
+/// * `cwd()` - get current working directory
+/// * `user()` - get current user name
+fn home() -> str {
+    return builtin_env_home();
+}
+
+/// Get the hostname of the machine.
+///
+/// # Returns
+///
+/// The system hostname.
+///
+/// # Examples
+///
+/// ```forge
+/// import [hostname] from std.env;
+/// var host = hostname();
+/// println("Running on: {host}");
+/// ```
+fn hostname() -> str {
+    return builtin_env_hostname();
+}
+
+/// Get the name of the operating system.
+///
+/// # Returns
+///
+/// The OS name (e.g., "linux", "windows", "macos").
+///
+/// # Examples
+///
+/// ```forge
+/// import [os] from std.env;
+/// var os_name = os();
+/// println("Running on: {os_name}");
+/// ```
+fn os() -> str {
+    return builtin_env_os();
+}
+
+/// Get the value of an environment variable.
+///
+/// # Arguments
+///
+/// * `name` - The name of the environment variable
+///
+/// # Returns
+///
+/// The value of the environment variable.
+///
+/// # Errors
+///
+/// May fail if the variable doesn't exist.
+///
+/// # Examples
+///
+/// ```forge
+/// import [get] from std.env;
+/// var path = get("PATH");
+/// println("PATH: {path}");
+/// ```
+///
+/// # See Also
+///
+/// * `set()` - set an environment variable
+/// * `has()` - check if an environment variable exists
+fn get(name) -> str {
+    return builtin_env_get(name);
+}
+
+/// Set an environment variable.
+///
+/// # Arguments
+///
+/// * `name` - The name of the environment variable
+/// * `value` - The value to set
+///
+/// # Examples
+///
+/// ```forge
+/// import [set] from std.env;
+/// set("MY_VAR", "hello");
+/// ```
+///
+/// # See Also
+///
+/// * `get()` - get an environment variable
+/// * `remove()` - remove an environment variable
+fn set(name, value) -> void {
+    builtin_env_set(name, value);
+}
+
+/// Check if an environment variable exists.
+///
+/// # Arguments
+///
+/// * `name` - The name of the environment variable
+///
+/// # Returns
+///
+/// `true` if the variable exists, `false` otherwise.
+///
+/// # Examples
+///
+/// ```forge
+/// import [has] from std.env;
+/// if has("HOME") {
+///     println("HOME is set");
+/// }
+/// ```
+///
+/// # See Also
+///
+/// * `get()` - get an environment variable
+/// * `set()` - set an environment variable
+fn has(name) -> bool {
+    return builtin_env_has(name);
+}
+
+/// Remove (unset) an environment variable.
+///
+/// # Arguments
+///
+/// * `name` - The name of the environment variable to remove
+///
+/// # Examples
+///
+/// ```forge
+/// import [remove] from std.env;
+/// remove("MY_VAR");
+/// ```
+///
+/// # See Also
+///
+/// * `set()` - set an environment variable
+/// * `has()` - check if an environment variable exists
+fn remove(name) -> void {
+    builtin_env_remove(name);
+}
+
+/// Get all environment variables.
+///
+/// # Returns
+///
+/// A list of key-value pairs representing all environment variables.
+///
+/// # Examples
+///
+/// ```forge
+/// import [vars] from std.env;
+/// var all_vars = vars();
+/// for (key, value) in all_vars {
+///     println("{key}={value}");
+/// }
+/// ```
+///
+/// # See Also
+///
+/// * `get()` - get a specific environment variable
+fn vars() {
+    return builtin_env_vars();
+}
+
+/// Get the current user name.
+///
+/// Extracts the user name from the home directory path.
+///
+/// # Returns
+///
+/// The current user name, or `"unknown"` if it cannot be determined.
+///
+/// # Examples
+///
+/// ```forge
+/// import [user] from std.env;
+/// var username = user();
+/// println("Hello, {username}!");
+/// ```
+///
+/// # See Also
+///
+/// * `home()` - get the home directory
+fn user() -> str {
+    var home_path = home();
+    var parts = home_path.split("/");
+    if parts.length() > 0 {
+        return parts.last();
+    }
+    return "unknown";
+}

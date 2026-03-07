@@ -1,0 +1,178 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                        std.io                                     ║
+// ║                  Input/Output Operations                          ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Print a value to stdout without a trailing newline.
+///
+/// # Arguments
+///
+/// * `value` - Any value to be printed (automatically converted to string)
+///
+/// # Examples
+///
+/// ```forge
+/// import [print] from std.io;
+/// print("Hello");
+/// print(" World");
+/// // Output: Hello World
+/// ```
+///
+/// # See Also
+///
+/// * `println()` - print with a trailing newline
+fn print(value) -> void {
+    builtin_print(value);
+}
+
+/// Print a value to stdout with a trailing newline.
+///
+/// # Arguments
+///
+/// * `value` - Any value to be printed (automatically converted to string)
+///
+/// # Examples
+///
+/// ```forge
+/// import [println] from std.io;
+/// println("Hello, ForgeLang!");
+/// // Output: Hello, ForgeLang!
+/// //         (with newline)
+/// ```
+///
+/// # See Also
+///
+/// * `print()` - print without a trailing newline
+/// * `eprintln()` - print to stderr with a trailing newline
+fn println(value) -> void {
+    builtin_println(value);
+}
+
+/// Print a value to stderr without a trailing newline.
+///
+/// Use this for error messages and diagnostics that should be
+/// separated from normal program output.
+///
+/// # Arguments
+///
+/// * `value` - Any value to be printed to stderr
+///
+/// # Examples
+///
+/// ```forge
+/// import [eprint] from std.io;
+/// eprint("Error: ");
+/// eprint("Something went wrong");
+/// ```
+///
+/// # See Also
+///
+/// * `eprintln()` - print to stderr with a trailing newline
+/// * `print()` - print to stdout
+fn eprint(value) -> void {
+    builtin_eprint(value);
+}
+
+/// Print a value to stderr with a trailing newline.
+///
+/// Use this for error messages and diagnostics that should be
+/// separated from normal program output.
+///
+/// # Arguments
+///
+/// * `value` - Any value to be printed to stderr
+///
+/// # Examples
+///
+/// ```forge
+/// import [eprintln] from std.io;
+/// eprintln("Error: File not found");
+/// ```
+///
+/// # See Also
+///
+/// * `eprint()` - print to stderr without a trailing newline
+/// * `println()` - print to stdout with a trailing newline
+fn eprintln(value) -> void {
+    builtin_eprint(value);
+    builtin_eprint("\n");
+}
+
+/// Read a single line from stdin.
+///
+/// Reads input until a newline is encountered or EOF is reached.
+/// The trailing newline is stripped from the result.
+///
+/// # Returns
+///
+/// A string containing the input line (without the trailing newline).
+///
+/// # Examples
+///
+/// ```forge
+/// import [read_line, println] from std.io;
+/// println("Enter your name:");
+/// var name = read_line();
+/// println("Hello, {name}!");
+/// ```
+///
+/// # See Also
+///
+/// * `read_all()` - read all input from stdin until EOF
+fn read_line() -> str {
+    return builtin_read_line();
+}
+
+/// Read all input from stdin until EOF.
+///
+/// Reads the entire stdin stream into a single string.
+/// Useful for piping data into your program.
+///
+/// # Returns
+///
+/// A string containing all input from stdin.
+///
+/// # Examples
+///
+/// ```forge
+/// import [read_all, println] from std.io;
+/// var input = read_all();
+/// println("Received {input.length()} characters");
+/// ```
+///
+/// # See Also
+///
+/// * `read_line()` - read a single line from stdin
+fn read_all() -> str {
+    return builtin_read_all();
+}
+
+/// Format a value as a string.
+///
+/// Converts any value to its string representation.
+/// This is the underlying function used by string interpolation.
+///
+/// # Arguments
+///
+/// * `value` - Any value to be converted to string
+///
+/// # Returns
+///
+/// The string representation of the value.
+///
+/// # Examples
+///
+/// ```forge
+/// import [format, println] from std.io;
+/// var num = 42;
+/// var str = format(num);
+/// println("The answer is {str}");
+/// ```
+///
+/// # See Also
+///
+/// * `str` class - string wrapper with additional methods
+fn format(value) -> str {
+    return builtin_format(value);
+}

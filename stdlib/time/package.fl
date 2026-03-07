@@ -1,0 +1,206 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                  ForgeLang Standard Library                       ║
+// ║                       std.time                                    ║
+// ║                  Time Operations                                  ║
+// ╚══════════════════════════════════════════════════════════════════╗
+
+/// Get the current time in milliseconds since epoch.
+///
+/// Returns the number of milliseconds since January 1, 1970 (Unix epoch).
+///
+/// # Returns
+///
+/// Current time as milliseconds since epoch.
+///
+/// # Examples
+///
+/// ```forge
+/// import [now] from std.time;
+/// var timestamp = now();
+/// println("Current timestamp: {timestamp}");
+/// ```
+///
+/// # See Also
+///
+/// * `now_secs()` - get current time in seconds
+/// * `sleep()` - sleep for a duration
+fn now() -> int {
+    return builtin_time_now();
+}
+
+/// Sleep for a specified duration.
+///
+/// Blocks execution for the specified number of milliseconds.
+///
+/// # Arguments
+///
+/// * `ms` - Number of milliseconds to sleep
+///
+/// # Examples
+///
+/// ```forge
+/// import [sleep] from std.time;
+/// println("Sleeping for 1 second...");
+/// sleep(1000);
+/// println("Awake!");
+/// ```
+///
+/// # See Also
+///
+/// * `sleep_secs()` - sleep for seconds
+/// * `now()` - get current time
+fn sleep(ms) -> void {
+    builtin_time_sleep(ms);
+}
+
+/// Sleep for a specified number of seconds.
+///
+/// # Arguments
+///
+/// * `secs` - Number of seconds to sleep
+///
+/// # Examples
+///
+/// ```forge
+/// import [sleep_secs] from std.time;
+/// sleep_secs(5);   // Sleep for 5 seconds
+/// ```
+///
+/// # See Also
+///
+/// * `sleep()` - sleep for milliseconds
+fn sleep_secs(secs) -> void {
+    sleep(secs * 1000);
+}
+
+/// Get the current time in seconds since epoch.
+///
+/// # Returns
+///
+/// Current time as seconds since January 1, 1970 (Unix epoch).
+///
+/// # Examples
+///
+/// ```forge
+/// import [now_secs] from std.time;
+/// var timestamp = now_secs();
+/// println("Current timestamp: {timestamp} seconds");
+/// ```
+///
+/// # See Also
+///
+/// * `now()` - get current time in milliseconds
+fn now_secs() -> int {
+    return now() / 1000;
+}
+
+/// Format a duration in milliseconds as a human-readable string.
+///
+/// Produces a string like "1d 2h 30m 45s 123ms" or "5s 200ms".
+/// Only includes non-zero components.
+///
+/// # Arguments
+///
+/// * `ms` - Duration in milliseconds
+///
+/// # Returns
+///
+/// A formatted string representing the duration.
+///
+/// # Examples
+///
+/// ```forge
+/// import [format_duration] from std.time;
+/// format_duration(3661000);   // "1h 1m 1s"
+/// format_duration(5000);      // "5s"
+/// format_duration(1500);      // "1s 500ms"
+/// ```
+fn format_duration(ms) -> str {
+    var secs = ms / 1000;
+    var mins = secs / 60;
+    var hours = mins / 60;
+    var days = hours / 24;
+
+    var remaining_ms = ms % 1000;
+    var remaining_secs = secs % 60;
+    var remaining_mins = mins % 60;
+    var remaining_hours = hours % 24;
+
+    var result = "";
+
+    if days > 0 {
+        result = result + days + "d ";
+    }
+    if remaining_hours > 0 {
+        result = result + remaining_hours + "h ";
+    }
+    if remaining_mins > 0 {
+        result = result + remaining_mins + "m ";
+    }
+    if remaining_secs > 0 || result == "" {
+        result = result + remaining_secs + "s ";
+    }
+    if remaining_ms > 0 {
+        result = result + remaining_ms + "ms";
+    }
+
+    return result.trim();
+}
+
+/// Measure the execution time of a function.
+///
+/// # Arguments
+///
+/// * `func` - The function to measure
+///
+/// # Returns
+///
+/// The execution time in milliseconds.
+///
+/// # Examples
+///
+/// ```forge
+/// import [measure] from std.time;
+/// var ms = measure(fn() {
+///     // Some computation
+///     var sum = 0;
+///     for i in range(0, 1000) {
+///         sum = sum + i;
+///     }
+/// });
+/// println("Took {ms} ms");
+/// ```
+///
+/// # See Also
+///
+/// * `benchmark()` - measure and print execution time
+fn measure(func) -> int {
+    var start = now();
+    func();
+    return now() - start;
+}
+
+/// Measure and print the execution time of a function.
+///
+/// # Arguments
+///
+/// * `label` - A label for the benchmark output
+/// * `func` - The function to measure
+///
+/// # Examples
+///
+/// ```forge
+/// import [benchmark] from std.time;
+/// benchmark("sort test", fn() {
+///     var data = [3, 1, 4, 1, 5, 9, 2, 6];
+///     sort.quick(data);
+/// });
+/// ```
+///
+/// # See Also
+///
+/// * `measure()` - measure execution time without printing
+fn benchmark(label, func) -> void {
+    var ms = measure(func);
+    println("[{label}] completed in {ms} ms");
+}
